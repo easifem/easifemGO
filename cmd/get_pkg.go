@@ -7,33 +7,44 @@ import (
 	"os/signal"
 	"sync"
 
+	// gcs "github.com/hashicorp/go-getter/gcs/v2"
+	// s3 "github.com/hashicorp/go-getter/s3/v2"
 	getter "github.com/hashicorp/go-getter/v2"
 )
 
-// get package from web
 func get_pkg(url, source_dir, pwd string) {
-	// Get the pwd
-
 	ctx, cancel := context.WithCancel(context.Background())
-
-	client := &getter.Client{
-		Ctx:  ctx,
-		Src:  url,
-		Dst:  source_dir,
-		Pwd:  pwd,
-		Mode: getter.ClientModeDir,
+	// Build the client
+	req := &getter.Request{
+		Src:     url,
+		Dst:     source_dir,
+		Pwd:     pwd,
+		GetMode: getter.ModeDir,
 	}
-
+	req.ProgressListener = defaultProgressBar
 	wg := sync.WaitGroup{}
 	wg.Add(1)
+
+	client := getter.DefaultClient
+
+	// Disable symlinks for all client requests
+	client.DisableSymlinks = true
+
+	getters := getter.Getters
+	// getters = append(getters, new(gcs.Getter))
+	// getters = append(getters, new(s3.Getter))
+	client.Getters = getters
+
 	errChan := make(chan error, 2)
 	go func() {
 		defer wg.Done()
 		defer cancel()
-		err := client.Get()
+		res, err := client.Get(ctx, req)
 		if err != nil {
 			errChan <- err
+			return
 		}
+		log.Printf("[log] :: get_pkg.go | request destination ➡️  %s", res.Dst)
 	}()
 
 	c := make(chan os.Signal, 1)
@@ -44,12 +55,11 @@ func get_pkg(url, source_dir, pwd string) {
 		signal.Reset(os.Interrupt)
 		cancel()
 		wg.Wait()
-		log.Printf("signal %v", sig)
+		log.Printf("[log] :: get_pkg.go | signal ➡️  %v", sig)
 	case <-ctx.Done():
 		wg.Wait()
-		log.Printf("success!")
 	case err := <-errChan:
 		wg.Wait()
-		log.Fatalf("Error downloading: %s", err)
+		log.Fatalf("[INTERNAL ERROR] :: get_pkg.go | Error downloading: %s", err)
 	}
 }

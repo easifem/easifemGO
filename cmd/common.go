@@ -119,15 +119,20 @@ const (
 	easifem_build_dir        = "$HOME/.easifem/build"
 	easifem_source_dir       = "$HOME/.easifem/src"
 	easifem_default_env_name = "env"
+
+	easifem_build_type = "Release" // default value of buil;d type
 )
 
 var (
 	quiet bool
 	// debugMode  bool
-	sourceDir  string
-	buildDir   string
-	installDir string
-	configFile string // config file name with extension
+	sourceDir       string
+	buildDir        string
+	installDir      string
+	configFile      string // config file name with extension
+	buildType       string //
+	buildSharedLibs bool
+	buildStaticLibs bool
 
 	easifem_current_env_name = easifem_default_env_name
 )

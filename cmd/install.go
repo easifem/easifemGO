@@ -5,7 +5,6 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -27,18 +26,13 @@ var installCmd = &cobra.Command{
 		// 	log.Println(err)
 		// 	os.Exit(1)
 		// }
-		fmt.Println("install called args, ", args)
-
 		pwd, err := os.Getwd()
 		if err != nil {
-			log.Fatalln("[INTERNAL ERROR] :: os.Getwd() ➡️ ", err)
-		} else {
-			log.Printf("pwd = %s", pwd)
+			log.Fatalln("[INTERNAL ERROR] :: install.go | os.Getwd() ➡️ ", err)
 		}
-
 		for _, pkg := range args {
 			if err := installPkgs(pkg, pwd); err != nil {
-				log.Fatalln("[INTERNAL ERROR] :: installPkgs() ➡ ", err)
+				log.Fatalln("[INTERNAL ERROR] :: install.go | installPkgs() ➡ ", err)
 			}
 		}
 	},
@@ -49,16 +43,28 @@ func installPkgs(pkg, pwd string) error {
 	source_dir := get_string_value("install", pkg, "sourceDir", sourceDir)
 	build_dir := get_string_value("install", pkg, "buildDir", buildDir)
 	install_dir := get_string_value("install", pkg, "installDir", installDir)
-	log.Printf("pkg %s will store at ➡ %s\n", pkg, source_dir)
-	log.Printf("pkg %s will build at ➡ %s\n", pkg, build_dir)
-	log.Printf("pkg %s will install at ➡ %s\n", pkg, install_dir)
-	log.Printf("pkg %s downloading ... \n", pkg)
-
 	url, err := get_url("install", pkg)
 	if err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: get_url() ➡ ", err)
+		log.Fatalln("[INTERNAL ERROR] :: install.go |  get_url() ➡ ", err)
 	}
 	get_pkg(url, source_dir, pwd)
+	change_dir(source_dir)
+	make_install_dir(install_dir)
+
+	switch build_sys := get_build_system("install", pkg); build_sys {
+	case "make":
+		install_pkg_make(pkg, pwd, source_dir, build_dir, install_dir)
+	case "cmake":
+		install_pkg_cmake(pkg, pwd, source_dir, build_dir, install_dir,
+			get_string_value("install", pkg, "buildType", buildType),
+			get_bool_value("install", pkg, "buildSharedLibs", buildSharedLibs),
+			get_bool_value("install", pkg, "buildStaticLibs", buildStaticLibs),
+			get_string_slice_value("install", pkg, "buildOptions"))
+	case "mason":
+		install_pkg_mason(pkg, pwd, source_dir, build_dir, install_dir)
+	default:
+	}
+
 	return nil
 }
 
@@ -71,20 +77,41 @@ func init() {
 		"Location where easifem will be build, EASIFEM_BUILD_DIR")
 	if err := viper.BindPFlag(env+".buildDir",
 		installCmd.PersistentFlags().Lookup("buildDir")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	installCmd.PersistentFlags().StringVarP(&sourceDir, "sourceDir", "s", easifem_source_dir,
 		"Location where easifem source code will be stored, EASIFEM_SOURCE_DIR")
 	if err := viper.BindPFlag(env+".sourceDir",
 		installCmd.PersistentFlags().Lookup("sourceDir")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	installCmd.PersistentFlags().StringVarP(&installDir, "installDir", "i", easifem_install_dir,
 		"Location where easifem will be installed, EASIFEM_INSTALL_DIR")
 	if err := viper.BindPFlag(env+".installDir",
 		installCmd.PersistentFlags().Lookup("installDir")); err != nil {
+		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
+	}
+
+	installCmd.PersistentFlags().StringVar(&buildType, "buildType", easifem_build_type,
+		"Build type, Release, Debug, Both")
+	if err := viper.BindPFlag(env+".buildType",
+		installCmd.PersistentFlags().Lookup("buildType")); err != nil {
 		log.Fatalln("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
+	}
+
+	installCmd.PersistentFlags().BoolVar(&buildSharedLibs, "buildSharedLibs", true,
+		"Build shared lib")
+	if err := viper.BindPFlag(env+".buildSharedLibs",
+		installCmd.PersistentFlags().Lookup("buildSharedLibs")); err != nil {
+		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
+	}
+
+	installCmd.PersistentFlags().BoolVar(&buildStaticLibs, "buildStaticLibs", false,
+		"Build Static lib")
+	if err := viper.BindPFlag(env+".buildStaticLibs",
+		installCmd.PersistentFlags().Lookup("buildStaticLibs")); err != nil {
+		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 }

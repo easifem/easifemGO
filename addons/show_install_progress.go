@@ -43,7 +43,7 @@ func TestGet_progress() {
 	url := "https://github.com/easifem/base.git"
 	defer os.RemoveAll(filepath.Dir(dst))
 	if err := getter.GetFile(dst, url, WithProgress(p)); err != nil {
-		log.Fatalf("download failed: %v", err)
+		log.Fatalf("[INTERNAL ERROR] :: show_install_progress.go | download failed: %v", err)
 	}
 	if p.downloaded["file"] != 1 {
 		log.Println("Expected a file download")

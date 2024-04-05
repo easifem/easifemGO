@@ -1,9 +1,12 @@
 envName="env1"
 [env1]
-quiet = true
+quiet = false
 buildDir = "/tmp/easifem/go-cli/build/"
 installDir= "/tmp/easifem/go-cli/install/"
 sourceDir= "/tmp/easifem/go-cli/src"
+buildType = "Release" # "Debug", "Both"
+buildSharedLibs = true
+buildStaticLibs = true
 
 [env2]
 quiet = false
@@ -12,9 +15,97 @@ installDir= "soko"
 sourceDir= "doko"
 
 [install.md2src]
-sourceDir = "/tmp/easifem/go-cli/src/md2src/"
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs/md2src/"
+buildDir = "/tmp/easifem/go-cli/build/extpkgs/md2src/"
+installDir = "/tmp/easifem/go-cli/install/extpkgs/md2src/"
 git = "github.com/easifem/md2src"
+buildOptions = ["-D CMAKE_BUILD_TYPE:STRING=Release",
+  "-D BUILD_SHARED_LIBS:BOOL=ON"
+]
 
-[install.base]
-sourceDir = "/tmp/easifem/go-cli/src/base/"
-git = "github.com/easifem/base"
+[install.sparsekit]
+buildSystem = "cmake"
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs/sparsekit/"
+buildDir = "/tmp/easifem/go-cli/build/extpkgs/sparsekit/"
+installDir = "/tmp/easifem/go-cli/install/extpkgs/sparsekit/"
+git = "github.com/easifem/sparsekit"
+buildType = "Release" # "Debug", "Both"
+buildSharedLibs = true
+buildStaticLibs = true
+libName = "Sparsekit"
+runtest = true
+license = "GPL3"
+
+[install.lapack95]
+buildSystem = "cmake"
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs/lapack95/"
+buildDir = "/tmp/easifem/go-cli/build/extpkgs/lapack95/"
+installDir = "/tmp/easifem/go-cli/install/extpkgs/lapack95/"
+git = "github.com/easifem/lapack95"
+buildType = "Release" # "Debug", "Both"
+buildSharedLibs = true
+buildStaticLibs = true
+libName = "LAPACK95"
+runtest = true
+license = "GPL3"
+
+[install.fftw]
+buildSystem = "cmake"
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs/fftw/"
+buildDir = "/tmp/easifem/go-cli/build/extpkgs/fftw/"
+installDir = "/tmp/easifem/go-cli/install/extpkgs/fftw/"
+git = "github.com/easifem/fftw"
+buildType = "Release" # "Debug", "Both"
+buildSharedLibs = true
+buildStaticLibs = true
+libName = "fftw"
+runtest = true
+license = "GPL3"
+buildOptions = ["-D BUILD_TESTS:BOOL=ON",
+"-D ENABLE_OPENMP:BOOL=ON",
+"-D ENABLE_THREADS:BOOL=OFF",
+"-D WITH_COMBINED_THREADS:BOOL=OFF",
+"-D ENABLE_FLOAT:BOOL=OFF",
+"-D ENABLE_LONG_DOUBLE:BOOL=OFF",
+"-D ENABLE_QUAD_PRECISION:BOOL=OFF",
+"-D ENABLE_SSE:BOOL=OFF",
+"-D ENABLE_SSE2:BOOL=OFF",
+"-D ENABLE_AVX:BOOL=OFF",
+"-D ENABLE_AVX2:BOOL=OFF",
+"-D DISABLE_FORTRAN:BOOL=OFF",
+]
+
+[install.superlu]
+buildSystem = "cmake"
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs/superlu/"
+buildDir = "/tmp/easifem/go-cli/build/extpkgs/superlu/"
+installDir = "/tmp/easifem/go-cli/install/extpkgs/superlu/"
+git = "github.com/easifem/superlu/"
+buildType = "Release" # "Debug", "Both"
+buildSharedLibs = true
+buildStaticLibs = true
+libName = "fftw"
+runtest = true
+license = "GPL3"
+buildOptions = [
+"-D TPL_ENABLE_METISLIB:BOOL=OFF",
+"-D enable_single:BOOL=ON",
+"-D enable_double:BOOL=ON",
+"-D enable_complex:BOOL=ON",
+"-D enable_complex16:BOOL=ON",
+"-D enable_matlabmex:BOOL=OFF",
+"-D enable_doc:BOOL=OFF",
+"-D enable_examples:BOOL=OFF",
+"-D enable_fortran:BOOL=ON",
+"-D enable_tests:BOOL=ON"]
+
+# option(enable_internal_blaslib  "Build the CBLAS library" ${enable_blaslib_xSDK})
+# option(enable_single    "Enable single precision library" ON)
+# option(enable_double    "Enable double precision library" ON)
+# option(enable_complex   "Enable complex precision library" ON)
+# option(enable_complex16 "Enable complex16 precision library" ON)
+# option(enable_matlabmex "Build the Matlab mex library" OFF)
+# option(enable_doc       "Add target 'doc' to build Doxygen documentation" OFF)
+# option(enable_examples  "Build examples" ON)
+# option(enable_fortran   "Build Fortran interface" ${enable_fortran_xSDK})
+# option(enable_tests     "Build tests" ON)

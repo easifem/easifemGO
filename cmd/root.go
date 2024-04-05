@@ -23,8 +23,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(easifem_banner)
 		if err := cmd.Help(); err != nil {
-			log.Println(err)
-			os.Exit(1)
+			log.Fatalln("[INTERNAL ERROR] :: root.go | cmd.Help() ➡️ ", err)
 		}
 		showConfig()
 	},
@@ -54,19 +53,17 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "",
 		"Config file name with extension (e.g. easifem.toml)")
 
-	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run commands in quiet mode.")
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Run commands in quiet mode.")
 	if err := viper.BindPFlag(easifem_current_env_name+".quiet",
 		rootCmd.PersistentFlags().Lookup("quiet")); err != nil {
-		log.Println("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
-		os.Exit(1)
+		log.Fatalln("[INTERNAL ERROR] :: root.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	rootCmd.PersistentFlags().StringVar(&easifem_current_env_name,
 		"env", easifem_default_env_name, "Current environment name")
 	if err := viper.BindPFlag("envName",
 		rootCmd.PersistentFlags().Lookup("env")); err != nil {
-		log.Println("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
-		os.Exit(1)
+		log.Fatalln("[INTERNAL ERROR] :: root.go | viper.BindPFlag() ➡ ", err)
 	}
 }
 
@@ -78,8 +75,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			log.Println("[INTERNAL ERROR] :: homedir.Dir() ➡ ", err)
-			os.Exit(1)
+			log.Fatalln("[INTERNAL ERROR] :: root.go | homedir.Dir() ➡ ", err)
 		}
 
 		viper.AddConfigPath(home)
@@ -96,12 +92,11 @@ func initConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err == nil {
-		quiet = viper.GetBool(easifem_current_env_name + ".quiet")
 		easifem_current_env_name = viper.GetString("envName")
+		quiet = viper.GetBool(easifem_current_env_name + ".quiet")
 		configFile = viper.ConfigFileUsed()
-		log.Println("[log] :: Success in reading config file ➡️ " + viper.ConfigFileUsed())
+		log.Println("[log] :: root.go | Success in reading config file ➡️ " + viper.ConfigFileUsed())
 	} else {
-		log.Println("[INTERNAL ERROR] :: viper.ReadInConfig() ➡ ", err)
-		os.Exit(1)
+		log.Fatalln("[INTERNAL ERROR] :: root.go | viper.ReadInConfig() ➡ ", err)
 	}
 }

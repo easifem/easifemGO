@@ -6,6 +6,7 @@ require (
 	github.com/charmbracelet/bubbles v0.18.0
 	github.com/charmbracelet/bubbletea v0.25.0
 	github.com/charmbracelet/lipgloss v0.10.0
+	github.com/cheggaaa/pb v1.0.27
 	github.com/hashicorp/go-getter v1.7.3
 	github.com/hashicorp/go-getter/v2 v2.2.1
 	github.com/mitchellh/go-homedir v1.1.0
