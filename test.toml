@@ -96,7 +96,6 @@ buildOptions = [
 "-D enable_matlabmex:BOOL=OFF",
 "-D enable_doc:BOOL=OFF",
 "-D enable_examples:BOOL=OFF",
-"-D enable_fortran:BOOL=ON",
 "-D enable_tests:BOOL=ON"]
 
 # option(enable_internal_blaslib  "Build the CBLAS library" ${enable_blaslib_xSDK})
