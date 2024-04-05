@@ -1,0 +1,20 @@
+envName="env1"
+[env1]
+quiet = true
+buildDir = "/tmp/easifem/go-cli/build/"
+installDir= "/tmp/easifem/go-cli/install/"
+sourceDir= "/tmp/easifem/go-cli/src"
+
+[env2]
+quiet = false
+buildDir = "koko"
+installDir= "soko"
+sourceDir= "doko"
+
+[install.md2src]
+sourceDir = "/tmp/easifem/go-cli/src/md2src/"
+git = "github.com/easifem/md2src"
+
+[install.base]
+sourceDir = "/tmp/easifem/go-cli/src/base/"
+git = "github.com/easifem/base"

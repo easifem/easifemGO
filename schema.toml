@@ -1,0 +1,39 @@
+[env]
+quiet = true
+buildDir = "~/.easifem/build/"
+installDir= "~/.easifem/install/"
+sourceDir= "~/.easifem/src/"
+
+[install.base]
+url =
+git =
+make =
+cmake =
+mason =
+license = 
+buildDir = easifem_build_dir/easifem/extpkgs/fftw/
+installDir =
+sourceDir =
+version =
+tag =
+buildType =
+onlyShared =
+onlyStatic =
+bothShareStatic =
+extraCFlags =
+extraLibs =
+
+[install.classes]
+
+[install.extpkgs.openblas]
+
+[install.extpkgs.sparsekit]
+
+[reinstall.extpkgs.sparsekit]
+
+[update.base]
+
+[update.classes]
+
+
+
