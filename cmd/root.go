@@ -53,7 +53,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "",
 		"Config file name with extension (e.g. easifem.toml)")
 
-	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "Run commands in quiet mode.")
+	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run commands in quiet mode.")
 	if err := viper.BindPFlag(easifem_current_env_name+".quiet",
 		rootCmd.PersistentFlags().Lookup("quiet")); err != nil {
 		log.Fatalln("[INTERNAL ERROR] :: root.go | viper.BindPFlag() ➡ ", err)

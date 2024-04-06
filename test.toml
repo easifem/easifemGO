@@ -1,6 +1,6 @@
 envName="env1"
 [env1]
-quiet = false
+quiet = true
 buildDir = "/tmp/easifem/go-cli/build/"
 installDir= "/tmp/easifem/go-cli/install/"
 sourceDir= "/tmp/easifem/go-cli/src"
