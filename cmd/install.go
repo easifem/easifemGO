@@ -5,6 +5,7 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -21,18 +22,23 @@ var installCmd = &cobra.Command{
 	Long:  easifem_install_intro,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// fmt.Println(easifem_banner)
-		// if err := cmd.Help(); err != nil {
-		// 	log.Println(err)
-		// 	os.Exit(1)
-		// }
+		fmt.Println(easifem_banner)
 		pwd, err := os.Getwd()
 		if err != nil {
 			log.Fatalln("[err] :: install.go | os.Getwd() ➡️ ", err)
 		}
 		for _, pkg := range args {
-			if err := installPkgs(pkg, pwd); err != nil {
-				log.Fatalln("[err] :: install.go | installPkgs() ➡ ", err)
+			if pkg == "extpkgs" {
+				pkgs := get_ext_pkgs()
+				for _, p := range pkgs {
+					if err := installPkgs(p, pwd); err != nil {
+						log.Fatalln("[err] :: install.go | installPkgs() ➡ ", err)
+					}
+				}
+			} else {
+				if err := installPkgs(pkg, pwd); err != nil {
+					log.Fatalln("[err] :: install.go | installPkgs() ➡ ", err)
+				}
 			}
 		}
 	},
@@ -40,9 +46,10 @@ var installCmd = &cobra.Command{
 
 // install a package
 func installPkgs(pkg, pwd string) error {
-	source_dir := get_string_value("install", pkg, "sourceDir", sourceDir)
-	build_dir := get_string_value("install", pkg, "buildDir", buildDir)
-	install_dir := get_string_value("install", pkg, "installDir", installDir)
+	source_dir := get_source_dir(pkg)
+	build_dir := get_build_dir(pkg)
+	install_dir := get_install_dir(pkg)
+
 	url, err := get_url("install", pkg)
 	if err != nil {
 		log.Fatalln("[err] :: install.go |  get_url() ➡ ", err)
@@ -53,7 +60,8 @@ func installPkgs(pkg, pwd string) error {
 
 	switch build_sys := get_build_system("install", pkg); build_sys {
 	case "make":
-		install_pkg_make(pkg, pwd, source_dir, build_dir, install_dir)
+		install_pkg_make(pkg, pwd, source_dir, build_dir, install_dir,
+			get_string_slice_value("install", pkg, "buildOptions"))
 	case "cmake":
 		install_pkg_cmake(pkg, pwd, source_dir, build_dir, install_dir,
 			get_string_value("install", pkg, "buildType", buildType),

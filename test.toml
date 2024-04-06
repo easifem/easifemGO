@@ -1,4 +1,5 @@
 envName="env1"
+
 [env1]
 quiet = false
 buildDir = "/tmp/easifem/go-cli/build/"
@@ -7,12 +8,15 @@ sourceDir= "/tmp/easifem/go-cli/src"
 buildType = "Release" # "Debug", "Both"
 buildSharedLibs = true
 buildStaticLibs = true
+extpkgs = ["lis"]
 
 [env2]
 quiet = false
 buildDir = "koko"
 installDir= "soko"
 sourceDir= "doko"
+extpkgs = ["sparsekit"]
+
 
 [install.md2src]
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/md2src/"
@@ -119,7 +123,7 @@ buildOptions = [
 
 [install.tomlf]
 buildSystem = "cmake"
-sourceDir = "/tmp/easifem/go-cli/src/extpkgs//toml-f"
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs/toml-f"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/toml-f"
 installDir = "/tmp/easifem/go-cli/install/extpkgs/toml-f"
 git = 'github.com/toml-f/toml-f/'
@@ -131,3 +135,16 @@ runtest = true
 license = "GPL3"
 buildOptions = [""]
 
+[install.lis]
+buildSystem = "make"
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs/lis"
+buildDir = "/tmp/easifem/go-cli/build/extpkgs/lis"
+installDir = "/tmp/easifem/go-cli/install/extpkgs/lis"
+git = 'github.com/easifem/lis/'
+buildType = "Release" # "Debug", "Both"
+buildSharedLibs = true
+buildStaticLibs = true
+libName = "lis"
+runtest = true
+license = "GPL3"
+buildOptions = ["--enable-omp", "--enable-f90", "--enable-shared", "--enable-saamg"]
