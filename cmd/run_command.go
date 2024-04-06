@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bufio"
+	"fmt"
 	"io"
 	"log"
 	"os/exec"
@@ -11,10 +13,17 @@ func run_command(cargs []string) {
 		log.Println("[log] :: run_command.go | cmd name ➡️ ", cargs)
 	}
 	cmd := exec.Command(cargs[0], cargs[1:]...)
+
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.StderrPipe() ➡️ ", err)
 	}
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.StdoutPipe() ➡️ ", err)
+	}
+
 	if err := cmd.Start(); err != nil {
 		log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.Start() ➡️ ", err)
 	}
@@ -22,6 +31,13 @@ func run_command(cargs []string) {
 	slurp, _ := io.ReadAll(stderr)
 	if len(slurp) != 0 {
 		log.Printf("[log] :: run_command.go | stderr %s\n", slurp)
+	}
+
+	scanner := bufio.NewScanner(stdout)
+	scanner.Split(bufio.ScanLines)
+	for scanner.Scan() {
+		// m := scanner.Text()
+		fmt.Printf("hello")
 	}
 
 	if err := cmd.Wait(); err != nil {

@@ -1,4 +1,4 @@
-package easifem_snipper
+package cmd
 
 // A simple program demonstrating the spinner component from the Bubbles
 // component library.
@@ -31,7 +31,7 @@ var easifem_spinner = tea.NewProgram(initialModel())
 
 func startSpinner() {
 	if _, err := easifem_spinner.Run(); err != nil {
-		log.Println("[log] :: easifem_spinner.Run() some error occured ", err)
+		log.Println("[log] :: spinner.go | easifem_spinner.Run() some error occured ", err)
 	}
 }
 
