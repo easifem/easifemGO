@@ -23,7 +23,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(easifem_banner)
 		if err := cmd.Help(); err != nil {
-			log.Fatalln("[INTERNAL ERROR] :: root.go | cmd.Help() ➡️ ", err)
+			log.Fatalln("[err] :: root.go | cmd.Help() ➡️ ", err)
 		}
 		showConfig()
 	},
@@ -56,14 +56,14 @@ func init() {
 	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run commands in quiet mode.")
 	if err := viper.BindPFlag(easifem_current_env_name+".quiet",
 		rootCmd.PersistentFlags().Lookup("quiet")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: root.go | viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: root.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	rootCmd.PersistentFlags().StringVar(&easifem_current_env_name,
 		"env", easifem_default_env_name, "Current environment name")
 	if err := viper.BindPFlag("envName",
 		rootCmd.PersistentFlags().Lookup("env")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: root.go | viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: root.go | viper.BindPFlag() ➡ ", err)
 	}
 }
 
@@ -75,7 +75,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			log.Fatalln("[INTERNAL ERROR] :: root.go | homedir.Dir() ➡ ", err)
+			log.Fatalln("[err] :: root.go | homedir.Dir() ➡ ", err)
 		}
 
 		viper.AddConfigPath(home)
@@ -97,6 +97,6 @@ func initConfig() {
 		configFile = viper.ConfigFileUsed()
 		log.Println("[log] :: root.go | Success in reading config file ➡️ " + viper.ConfigFileUsed())
 	} else {
-		log.Fatalln("[INTERNAL ERROR] :: root.go | viper.ReadInConfig() ➡ ", err)
+		log.Fatalln("[err] :: root.go | viper.ReadInConfig() ➡ ", err)
 	}
 }

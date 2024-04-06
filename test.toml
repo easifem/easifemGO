@@ -35,6 +35,7 @@ buildStaticLibs = true
 libName = "Sparsekit"
 runtest = true
 license = "GPL3"
+buildOptions = [""]
 
 [install.lapack95]
 buildSystem = "cmake"

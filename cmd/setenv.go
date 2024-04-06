@@ -39,7 +39,7 @@ func init() {
 		"Location where easifem will be build, EASIFEM_BUILD_DIR")
 	if err := viper.BindPFlag(easifem_current_env_name+".buildDir",
 		setenvCmd.PersistentFlags().Lookup("buildDir")); err != nil {
-		log.Println("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
+		log.Println("[err] :: viper.BindPFlag() ➡ ", err)
 		os.Exit(1)
 	}
 
@@ -47,7 +47,7 @@ func init() {
 		"Location where easifem source code will be stored, EASIFEM_SOURCE_DIR")
 	if err := viper.BindPFlag(easifem_current_env_name+".sourceDir",
 		setenvCmd.PersistentFlags().Lookup("sourceDir")); err != nil {
-		log.Println("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
+		log.Println("[err] :: viper.BindPFlag() ➡ ", err)
 		os.Exit(1)
 	}
 
@@ -55,7 +55,7 @@ func init() {
 		"Location where easifem will be installed, EASIFEM_INSTALL_DIR")
 	if err := viper.BindPFlag(easifem_current_env_name+".installDir",
 		setenvCmd.PersistentFlags().Lookup("installDir")); err != nil {
-		log.Println("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
+		log.Println("[err] :: viper.BindPFlag() ➡ ", err)
 		os.Exit(1)
 	}
 }

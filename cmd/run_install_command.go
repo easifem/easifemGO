@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"log"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/briandowns/spinner"
 )
 
-func run_install_command(cargs []string) {
+func run_install_command(cargs []string, pkg, step string) {
 	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
-	s.Suffix = " command is running"
+	s.Suffix = " installing " + pkg + " cmd: " + cargs[0] + " " + step
 	_ = s.Color("red")
 
 	if !quiet {
@@ -21,39 +22,51 @@ func run_install_command(cargs []string) {
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.StderrPipe() ➡️ ", err)
+		log.Fatalln("[err] :: run_command.go | cmd.StderrPipe() ➡️ ", err)
 	}
 	stderr_scanner := bufio.NewScanner(stderr)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.StdoutPipe() ➡️ ", err)
+		log.Fatalln("[err] :: run_command.go | cmd.StdoutPipe() ➡️ ", err)
 	}
 	stdout_scanner := bufio.NewScanner(stdout)
 
 	if quiet {
 		s.Start() // Start the spinner
+		defer s.Stop()
 	}
 
 	if err := cmd.Start(); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.Start() ➡️ ", err)
+		log.Fatalln("[err] :: run_command.go | cmd.Start() ➡️ ", err)
 		if quiet {
 			s.Stop() // Start the spinner
 		}
 	}
 
+	stderr_scanner.Split(bufio.ScanLines)
+	isok := false
 	for stderr_scanner.Scan() {
-		// Do something with the line here.
-		// ProcessLine(scanner.Text())
+		m := stderr_scanner.Text()
+		if !isok {
+			isok = strings.Contains(m, "Error") || strings.Contains(m, "error")
+			if isok && quiet {
+				s.Stop()
+			}
+		}
+
+		if isok {
+			log.Println("[log] :: run_install_command.go: ", m)
+		}
 	}
 
 	if stderr_scanner.Err() != nil {
 		if err := cmd.Process.Kill(); err != nil {
-			log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.Process.Kill(): ", err)
+			log.Fatalln("[err] :: run_command.go | cmd.Process.Kill(): ", err)
 		}
 
 		if err := cmd.Wait(); err != nil {
-			log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.Wait(): ", err)
+			log.Fatalln("[err] :: run_command.go | cmd.Wait(): ", err)
 		}
 
 		if quiet {
@@ -63,18 +76,18 @@ func run_install_command(cargs []string) {
 	}
 
 	if !quiet {
+		stdout_scanner.Split(bufio.ScanLines)
 		for stdout_scanner.Scan() {
-			// Do something with the line here.
-			// ProcessLine(scanner.Text())
+			log.Println(stdout_scanner.Text())
 		}
 
 		if stdout_scanner.Err() != nil {
 			if err := cmd.Process.Kill(); err != nil {
-				log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.Process.Kill(): ", err)
+				log.Fatalln("[err] :: run_command.go | cmd.Process.Kill(): ", err)
 			}
 
 			if err := cmd.Wait(); err != nil {
-				log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.Wait(): ", err)
+				log.Fatalln("[err] :: run_command.go | cmd.Wait(): ", err)
 			}
 
 			if quiet {
@@ -88,7 +101,7 @@ func run_install_command(cargs []string) {
 		if quiet {
 			s.Stop()
 		}
-		log.Fatalln("[INTERNAL ERROR] :: run_command.go | cmd.Wait(): ", err)
+		log.Fatalln("[err] :: run_command.go | cmd.Wait(): ", err)
 	}
 
 	if quiet {

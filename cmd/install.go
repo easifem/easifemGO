@@ -28,11 +28,11 @@ var installCmd = &cobra.Command{
 		// }
 		pwd, err := os.Getwd()
 		if err != nil {
-			log.Fatalln("[INTERNAL ERROR] :: install.go | os.Getwd() ➡️ ", err)
+			log.Fatalln("[err] :: install.go | os.Getwd() ➡️ ", err)
 		}
 		for _, pkg := range args {
 			if err := installPkgs(pkg, pwd); err != nil {
-				log.Fatalln("[INTERNAL ERROR] :: install.go | installPkgs() ➡ ", err)
+				log.Fatalln("[err] :: install.go | installPkgs() ➡ ", err)
 			}
 		}
 	},
@@ -45,7 +45,7 @@ func installPkgs(pkg, pwd string) error {
 	install_dir := get_string_value("install", pkg, "installDir", installDir)
 	url, err := get_url("install", pkg)
 	if err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: install.go |  get_url() ➡ ", err)
+		log.Fatalln("[err] :: install.go |  get_url() ➡ ", err)
 	}
 	get_pkg(url, source_dir, pwd)
 	change_dir(source_dir)
@@ -77,41 +77,41 @@ func init() {
 		"Location where easifem will be build, EASIFEM_BUILD_DIR")
 	if err := viper.BindPFlag(env+".buildDir",
 		installCmd.PersistentFlags().Lookup("buildDir")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	installCmd.PersistentFlags().StringVarP(&sourceDir, "sourceDir", "s", easifem_source_dir,
 		"Location where easifem source code will be stored, EASIFEM_SOURCE_DIR")
 	if err := viper.BindPFlag(env+".sourceDir",
 		installCmd.PersistentFlags().Lookup("sourceDir")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	installCmd.PersistentFlags().StringVarP(&installDir, "installDir", "i", easifem_install_dir,
 		"Location where easifem will be installed, EASIFEM_INSTALL_DIR")
 	if err := viper.BindPFlag(env+".installDir",
 		installCmd.PersistentFlags().Lookup("installDir")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	installCmd.PersistentFlags().StringVar(&buildType, "buildType", easifem_build_type,
 		"Build type, Release, Debug, Both")
 	if err := viper.BindPFlag(env+".buildType",
 		installCmd.PersistentFlags().Lookup("buildType")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: viper.BindPFlag() ➡ ", err)
 	}
 
 	installCmd.PersistentFlags().BoolVar(&buildSharedLibs, "buildSharedLibs", true,
 		"Build shared lib")
 	if err := viper.BindPFlag(env+".buildSharedLibs",
 		installCmd.PersistentFlags().Lookup("buildSharedLibs")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 
 	installCmd.PersistentFlags().BoolVar(&buildStaticLibs, "buildStaticLibs", false,
 		"Build Static lib")
 	if err := viper.BindPFlag(env+".buildStaticLibs",
 		installCmd.PersistentFlags().Lookup("buildStaticLibs")); err != nil {
-		log.Fatalln("[INTERNAL ERROR] :: install.go | viper.BindPFlag() ➡ ", err)
+		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
 	}
 }

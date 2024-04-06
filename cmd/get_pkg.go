@@ -60,6 +60,6 @@ func get_pkg(url, source_dir, pwd string) {
 		wg.Wait()
 	case err := <-errChan:
 		wg.Wait()
-		log.Fatalf("[INTERNAL ERROR] :: get_pkg.go | Error downloading: %s", err)
+		log.Fatalf("[err] :: get_pkg.go | Error downloading: %s", err)
 	}
 }
