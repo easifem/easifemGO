@@ -48,7 +48,7 @@ func installPkgs(pkg, pwd string) error {
 		log.Fatalln("[err] :: install.go |  get_url() ➡ ", err)
 	}
 	get_pkg(url, source_dir, pwd)
-	change_dir(source_dir)
+	// change_dir(source_dir)
 	make_install_dir(install_dir)
 
 	switch build_sys := get_build_system("install", pkg); build_sys {

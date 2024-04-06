@@ -42,9 +42,11 @@ func get_pkg(url, source_dir, pwd string) {
 		res, err := client.Get(ctx, req)
 		if err != nil {
 			errChan <- err
+			log.Fatalf("[err] :: get_pkg.go: %s", res.Dst)
 			return
 		}
-		log.Printf("[log] :: get_pkg.go | request destination ➡️  %s", res.Dst)
+		log.Printf("[log] :: get_pkg.go | source:  %s", req.Src)
+		log.Printf("[log] :: get_pkg.go | request destination:  %s", req.Dst)
 	}()
 
 	c := make(chan os.Signal, 1)
@@ -55,7 +57,7 @@ func get_pkg(url, source_dir, pwd string) {
 		signal.Reset(os.Interrupt)
 		cancel()
 		wg.Wait()
-		log.Printf("[log] :: get_pkg.go | signal ➡️  %v", sig)
+		log.Printf("[log] :: get_pkg.go | signal: %v", sig)
 	case <-ctx.Done():
 		wg.Wait()
 	case err := <-errChan:
