@@ -16,10 +16,12 @@ func get_pkg(url, source_dir, pwd string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	// Build the client
 	req := &getter.Request{
-		Src:     url,
-		Dst:     source_dir,
-		Pwd:     pwd,
-		GetMode: getter.ModeDir,
+		Src:             url,
+		Dst:             source_dir,
+		Pwd:             pwd,
+		GetMode:         getter.ModeAny,
+		Copy:            true,
+		DisableSymlinks: true,
 	}
 	req.ProgressListener = defaultProgressBar
 	wg := sync.WaitGroup{}

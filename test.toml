@@ -104,7 +104,7 @@ buildSystem = "cmake"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/arpack/"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/arpack/"
 installDir = "/tmp/easifem/go-cli/install/extpkgs/arpack/"
-git = 'https://github.com/easifem/arpack'
+git = 'github.com/easifem/arpack.git'
 buildType = "Release" # "Debug", "Both"
 buildSharedLibs = true
 buildStaticLibs = true
@@ -119,19 +119,15 @@ buildOptions = [
 
 [install.tomlf]
 buildSystem = "cmake"
-sourceDir = "/tmp/easifem/go-cli/src/extpkgs/toml-f/toml-f"
-buildDir = "/tmp/easifem/go-cli/build/extpkgs/toml-f/toml-f"
-installDir = "/tmp/easifem/go-cli/install/extpkgs/toml-f/toml-f"
-git = 'https://github.com/toml-f/toml-f'
+sourceDir = "/tmp/easifem/go-cli/src/extpkgs//toml-f"
+buildDir = "/tmp/easifem/go-cli/build/extpkgs/toml-f"
+installDir = "/tmp/easifem/go-cli/install/extpkgs/toml-f"
+git = 'github.com/toml-f/toml-f/'
 buildType = "Release" # "Debug", "Both"
 buildSharedLibs = true
 buildStaticLibs = true
 libName = "tomlf"
 runtest = true
 license = "GPL3"
-buildOptions = [
-"-D MPI:BOOL=OFF",
-"-D ICB:BOOL=OFF",
-"-D EIGEN:BOOL=OFF",
-"-D EXAMPLES:BOOL=OFF"]
+buildOptions = [""]
 
