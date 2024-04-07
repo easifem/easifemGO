@@ -58,6 +58,14 @@ func installPkgs(pkg, pwd string) error {
 	// change_dir(source_dir)
 	make_install_dir(install_dir)
 
+	env_vars := get_map_string_string("install", pkg, "env")
+	if env_vars != nil {
+		for k, v := range env_vars {
+			fmt.Printf("setting env %s=%s", k, v)
+			os.Setenv(k, v)
+		}
+	}
+
 	switch build_sys := get_build_system("install", pkg); build_sys {
 	case "make":
 		install_pkg_make(pkg, pwd, source_dir, build_dir, install_dir,

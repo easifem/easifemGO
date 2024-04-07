@@ -1,7 +1,7 @@
 envName="env1"
 
 [env1]
-quiet = false
+quiet = true
 buildDir = "/tmp/easifem/go-cli/build/"
 installDir= "/tmp/easifem/go-cli/install/"
 sourceDir= "/tmp/easifem/go-cli/src"
@@ -148,3 +148,4 @@ libName = "lis"
 runtest = true
 license = "GPL3"
 buildOptions = ["--enable-omp", "--enable-f90", "--enable-shared", "--enable-saamg"]
+env = ["CC=gcc-13"]

@@ -1,8 +1,12 @@
 package cmd
 
-import "path"
+import (
+	"path"
+)
 
-func install_pkg_make(pkg, pwd, source_dir, build_dir, install_dir string, buildOptions []string) {
+func install_pkg_make(pkg, pwd, source_dir, build_dir, install_dir string,
+	buildOptions []string,
+) {
 	change_dir(build_dir)
 
 	cargs := append([]string{
