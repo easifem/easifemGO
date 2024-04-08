@@ -5,10 +5,18 @@ import (
 )
 
 // this function returns the url from config file
-func get_build_system(a, b string) string {
-	if key := a + "." + b + "." + "buildSystem"; viper.IsSet(key) {
+func install_get_build_system(pkg string) string {
+	if key := pkg + ".buildSystem"; viper.IsSet(key) {
 		return viper.GetString(key)
-	} else {
-		return "cmake"
 	}
+
+	if key := "install." + pkg + ".buildSystem"; viper.IsSet(key) {
+		return viper.GetString(key)
+	}
+
+	if key := easifem_current_env_name + ".buildSystem"; viper.IsSet(key) {
+		return viper.GetString(key)
+	}
+
+	return "cmake"
 }

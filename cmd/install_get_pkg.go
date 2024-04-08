@@ -12,7 +12,7 @@ import (
 	getter "github.com/hashicorp/go-getter/v2"
 )
 
-func get_pkg(url, source_dir, pwd string) {
+func install_get_pkg(url, source_dir, pwd string) {
 	ctx, cancel := context.WithCancel(context.Background())
 	// Build the client
 	req := &getter.Request{

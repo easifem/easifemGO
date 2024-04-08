@@ -10,7 +10,10 @@ import (
 // get install.pkg.sourceDir from the viper
 // get sourceDir from the viper
 // it uses the default value sourceDir/easifem/pkg
-func get_source_dir(pkg string) string {
+func install_get_source_dir(pkg string) string {
+	if key := pkg + ".sourceDir"; viper.IsSet(key) {
+		return viper.GetString(key)
+	}
 	if key := "install." + pkg + ".sourceDir"; viper.IsSet(key) {
 		return viper.GetString(key)
 	}

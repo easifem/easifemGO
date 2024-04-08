@@ -14,13 +14,13 @@ func install_pkg_cmake(pkg, pwd, source_dir, build_dir, install_dir, buildType s
 		"-D CMAKE_BUILD_STATIC_LIBS:BOOL=" + _buildSharedLibs(buildStaticLibs),
 	},
 		buildOptions...)
-	run_install_command(cargs, pkg, "[config]")
+	install_run_command(cargs, pkg, "[config]")
 
 	cargs = []string{"cmake", "--build", build_dir}
-	run_install_command(cargs, pkg, "[build]")
+	install_run_command(cargs, pkg, "[build]")
 
 	cargs = []string{"cmake", "--install", build_dir}
-	run_install_command(cargs, pkg, "[install]")
+	install_run_command(cargs, pkg, "[install]")
 }
 
 func _buildType(a string) string {

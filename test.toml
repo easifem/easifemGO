@@ -7,7 +7,8 @@ installDir= "/tmp/easifem/go-cli/install/"
 sourceDir= "/tmp/easifem/go-cli/src"
 buildType = "Release" # "Debug", "Both"
 buildSharedLibs = true
-buildStaticLibs = true
+buildStaticLibs = false
+buildSystem = "cmake"
 
 [env2]
 quiet = false
@@ -17,7 +18,7 @@ sourceDir= "doko"
 extpkgs = ["sparsekit"]
 
 
-[install.md2src]
+[md2src]
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/md2src/"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/md2src/"
 installDir = "/tmp/easifem/go-cli/install/extpkgs/md2src/"
@@ -26,7 +27,7 @@ buildOptions = ["-D CMAKE_BUILD_TYPE:STRING=Release",
   "-D BUILD_SHARED_LIBS:BOOL=ON"
 ]
 
-[install.sparsekit]
+[sparsekit]
 buildSystem = "cmake"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/sparsekit/"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/sparsekit/"
@@ -40,7 +41,7 @@ runtest = true
 license = "GPL3"
 buildOptions = [""]
 
-[install.lapack95]
+[lapack95]
 buildSystem = "cmake"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/lapack95/"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/lapack95/"
@@ -53,7 +54,7 @@ libName = "LAPACK95"
 runtest = true
 license = "GPL3"
 
-[install.fftw]
+[fftw]
 buildSystem = "cmake"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/fftw/"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/fftw/"
@@ -79,7 +80,7 @@ buildOptions = ["-D BUILD_TESTS:BOOL=ON",
 "-D DISABLE_FORTRAN:BOOL=OFF",
 ]
 
-[install.superlu]
+[superlu]
 buildSystem = "cmake"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/superlu/"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/superlu/"
@@ -102,7 +103,7 @@ buildOptions = [
 "-D enable_examples:BOOL=OFF",
 "-D enable_tests:BOOL=ON"]
 
-[install.arpack]
+[arpack]
 buildSystem = "cmake"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/arpack/"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/arpack/"
@@ -120,7 +121,7 @@ buildOptions = [
 "-D EIGEN:BOOL=OFF",
 "-D EXAMPLES:BOOL=OFF"]
 
-[install.tomlf]
+[tomlf]
 buildSystem = "cmake"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/toml-f"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/toml-f"
@@ -134,7 +135,7 @@ runtest = true
 license = "GPL3"
 buildOptions = [""]
 
-[install.lis]
+[lis]
 buildSystem = "make"
 sourceDir = "/tmp/easifem/go-cli/src/extpkgs/lis"
 buildDir = "/tmp/easifem/go-cli/build/extpkgs/lis"

@@ -7,18 +7,19 @@ import (
 )
 
 // this function returns the url from config file
-func get_url(a, b string) (string, error) {
+func install_get_url(pkg string) (string, error) {
 	opts := []string{
 		"git",
 		"url",
 	}
 
 	for _, opt := range opts {
-		key := a + "." + b + "." + opt
-		if viper.IsSet(key) {
+		if key := pkg + "." + opt; viper.IsSet(key) {
 			return viper.GetString(key), nil
 		}
-
+		if key := "install." + pkg + "." + opt; viper.IsSet(key) {
+			return viper.GetString(key), nil
+		}
 	}
 	return "", errors.New("no url related tag found")
 }

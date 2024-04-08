@@ -10,7 +10,7 @@ import (
 	"github.com/briandowns/spinner"
 )
 
-func run_install_command(cargs []string, pkg, step string) {
+func install_run_command(cargs []string, pkg, step string) {
 	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 	s.Suffix = " installing " + pkg + " cmd: " + cargs[0] + " " + step
 	_ = s.Color("red")

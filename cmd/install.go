@@ -45,28 +45,28 @@ var installCmd = &cobra.Command{
 
 // install a package
 func installPkgs(pkg, pwd string) error {
-	source_dir := get_source_dir(pkg)
-	build_dir := get_build_dir(pkg)
-	install_dir := get_install_dir(pkg)
+	source_dir := install_get_source_dir(pkg)
+	build_dir := install_get_build_dir(pkg)
+	install_dir := install_get_install_dir(pkg)
 
-	url, err := get_url("install", pkg)
+	url, err := install_get_url(pkg)
 	if err != nil {
-		log.Fatalln("[err] :: install.go |  get_url() ➡ ", err)
+		log.Fatalln("[err] :: install.go |  get_url(): ", err)
 	}
-	get_pkg(url, source_dir, pwd)
+	install_get_pkg(url, source_dir, pwd)
 	// change_dir(source_dir)
-	make_install_dir(install_dir)
+	install_make_dir(install_dir)
 
-	env_vars := get_map_string_string("install", pkg, "env")
+	env_vars := install_get_env_vars(pkg)
 	for k, v := range env_vars {
 		fmt.Printf("setting env %s=%s", k, v)
 		os.Setenv(k, v)
 	}
 
-	switch build_sys := get_build_system("install", pkg); build_sys {
+	switch build_sys := install_get_build_system(pkg); build_sys {
 	case "make":
 		install_pkg_make(pkg, pwd, source_dir, build_dir, install_dir,
-			get_string_slice_value("install", pkg, "buildOptions"))
+			install_get_string_slice_value(pkg, "buildOptions"))
 	case "cmake":
 		install_pkg_cmake(pkg, pwd, source_dir, build_dir, install_dir,
 			install_get_string_value(pkg, "buildType", buildType),

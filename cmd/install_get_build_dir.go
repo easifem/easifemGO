@@ -10,7 +10,10 @@ import (
 // get install.pkg.buildDir from the viper
 // get buildDir from the viper
 // it uses the default value buildDir/easifem/pkg
-func get_build_dir(pkg string) string {
+func install_get_build_dir(pkg string) string {
+	if key := pkg + ".buildDir"; viper.IsSet(key) {
+		return viper.GetString(key)
+	}
 	if key := "install." + pkg + ".buildDir"; viper.IsSet(key) {
 		return viper.GetString(key)
 	}
