@@ -105,6 +105,8 @@ materials: install easifemMaterials
 kernels: install easifemKernels
 `
 
+const easifem_clean_intro = "clean the build directory,  keep source code."
+
 const (
 	// easifem_version_major  int    = 23
 	// easifem_version_minor  int    = 10
@@ -126,13 +128,12 @@ const (
 var (
 	quiet bool
 	// debugMode  bool
-	sourceDir       string
-	buildDir        string
-	installDir      string
-	configFile      string // config file name with extension
-	buildType       string //
-	buildSharedLibs bool
-	buildStaticLibs bool
-
-	easifem_current_env_name = easifem_default_env_name
+	sourceDir                string
+	buildDir                 string
+	installDir               string
+	configFile               string             // config file name with extension
+	buildType                string = "Release" // build type "Release", "Debug"
+	buildSharedLibs                 = true
+	buildStaticLibs                 = false
+	easifem_current_env_name        = easifem_default_env_name
 )

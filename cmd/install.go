@@ -10,7 +10,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 // installCmd represents the install command
@@ -59,11 +58,9 @@ func installPkgs(pkg, pwd string) error {
 	make_install_dir(install_dir)
 
 	env_vars := get_map_string_string("install", pkg, "env")
-	if env_vars != nil {
-		for k, v := range env_vars {
-			fmt.Printf("setting env %s=%s", k, v)
-			os.Setenv(k, v)
-		}
+	for k, v := range env_vars {
+		fmt.Printf("setting env %s=%s", k, v)
+		os.Setenv(k, v)
 	}
 
 	switch build_sys := get_build_system("install", pkg); build_sys {
@@ -72,10 +69,10 @@ func installPkgs(pkg, pwd string) error {
 			get_string_slice_value("install", pkg, "buildOptions"))
 	case "cmake":
 		install_pkg_cmake(pkg, pwd, source_dir, build_dir, install_dir,
-			get_string_value("install", pkg, "buildType", buildType),
-			get_bool_value("install", pkg, "buildSharedLibs", buildSharedLibs),
-			get_bool_value("install", pkg, "buildStaticLibs", buildStaticLibs),
-			get_string_slice_value("install", pkg, "buildOptions"))
+			install_get_string_value(pkg, "buildType", buildType),
+			install_get_bool_value(pkg, "buildSharedLibs", buildSharedLibs),
+			install_get_bool_value(pkg, "buildStaticLibs", buildStaticLibs),
+			install_get_string_slice_value(pkg, "buildOptions"))
 	case "mason":
 		install_pkg_mason(pkg, pwd, source_dir, build_dir, install_dir)
 	default:
@@ -86,48 +83,4 @@ func installPkgs(pkg, pwd string) error {
 
 func init() {
 	rootCmd.AddCommand(installCmd)
-
-	env := easifem_current_env_name
-
-	installCmd.PersistentFlags().StringVarP(&buildDir, "buildDir", "b", easifem_build_dir,
-		"Location where easifem will be build, EASIFEM_BUILD_DIR")
-	if err := viper.BindPFlag(env+".buildDir",
-		installCmd.PersistentFlags().Lookup("buildDir")); err != nil {
-		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
-	}
-
-	installCmd.PersistentFlags().StringVarP(&sourceDir, "sourceDir", "s", easifem_source_dir,
-		"Location where easifem source code will be stored, EASIFEM_SOURCE_DIR")
-	if err := viper.BindPFlag(env+".sourceDir",
-		installCmd.PersistentFlags().Lookup("sourceDir")); err != nil {
-		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
-	}
-
-	installCmd.PersistentFlags().StringVarP(&installDir, "installDir", "i", easifem_install_dir,
-		"Location where easifem will be installed, EASIFEM_INSTALL_DIR")
-	if err := viper.BindPFlag(env+".installDir",
-		installCmd.PersistentFlags().Lookup("installDir")); err != nil {
-		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
-	}
-
-	installCmd.PersistentFlags().StringVar(&buildType, "buildType", easifem_build_type,
-		"Build type, Release, Debug, Both")
-	if err := viper.BindPFlag(env+".buildType",
-		installCmd.PersistentFlags().Lookup("buildType")); err != nil {
-		log.Fatalln("[err] :: viper.BindPFlag() ➡ ", err)
-	}
-
-	installCmd.PersistentFlags().BoolVar(&buildSharedLibs, "buildSharedLibs", true,
-		"Build shared lib")
-	if err := viper.BindPFlag(env+".buildSharedLibs",
-		installCmd.PersistentFlags().Lookup("buildSharedLibs")); err != nil {
-		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
-	}
-
-	installCmd.PersistentFlags().BoolVar(&buildStaticLibs, "buildStaticLibs", false,
-		"Build Static lib")
-	if err := viper.BindPFlag(env+".buildStaticLibs",
-		installCmd.PersistentFlags().Lookup("buildStaticLibs")); err != nil {
-		log.Fatalln("[err] :: install.go | viper.BindPFlag() ➡ ", err)
-	}
 }

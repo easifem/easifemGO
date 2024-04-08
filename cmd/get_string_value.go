@@ -1,16 +1,20 @@
 package cmd
 
-import "github.com/spf13/viper"
+import (
+	"strings"
 
-// this function get a.b.c from the viper
+	"github.com/spf13/viper"
+)
+
+// this function get a string from install.pkg.key
+// this function get a string from env.key
 // it uses the default value d
-func get_string_value(a, b, c, d string) string {
-	var ans string
-	key := a + "." + b + "." + c
-	if viper.IsSet(key) {
-		ans = viper.GetString(key)
-	} else {
-		ans = d
+func install_get_string_value(pkg, key, val string) string {
+	if key := strings.Join([]string{"install", pkg, key}, "."); viper.IsSet(key) {
+		return viper.GetString(key)
 	}
-	return ans
+	if key := strings.Join([]string{easifem_current_env_name, key}, "."); viper.IsSet(key) {
+		return viper.GetString(key)
+	}
+	return val
 }

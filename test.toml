@@ -8,7 +8,6 @@ sourceDir= "/tmp/easifem/go-cli/src"
 buildType = "Release" # "Debug", "Both"
 buildSharedLibs = true
 buildStaticLibs = true
-extpkgs = ["lis"]
 
 [env2]
 quiet = false
@@ -88,8 +87,8 @@ installDir = "/tmp/easifem/go-cli/install/extpkgs/superlu/"
 git = "github.com/easifem/superlu/"
 buildType = "Release" # "Debug", "Both"
 buildSharedLibs = true
-buildStaticLibs = true
-libName = "fftw"
+buildStaticLibs = false
+libName = "superlu"
 runtest = true
 license = "GPL3"
 buildOptions = [
@@ -148,4 +147,4 @@ libName = "lis"
 runtest = true
 license = "GPL3"
 buildOptions = ["--enable-omp", "--enable-f90", "--enable-shared", "--enable-saamg"]
-env = ["CC=gcc-13"]
+# env = ["CC=gcc-13"]

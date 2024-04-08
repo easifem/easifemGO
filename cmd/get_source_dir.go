@@ -6,10 +6,15 @@ import (
 	"github.com/spf13/viper"
 )
 
-// this function get a.b.c from the viper
-// it uses the default value d
+// this function returns the source directory name
+// get install.pkg.sourceDir from the viper
+// get sourceDir from the viper
+// it uses the default value sourceDir/easifem/pkg
 func get_source_dir(pkg string) string {
 	if key := "install." + pkg + ".sourceDir"; viper.IsSet(key) {
+		return viper.GetString(key)
+	}
+	if key := easifem_current_env_name + ".sourceDir"; viper.IsSet(key) {
 		return viper.GetString(key)
 	}
 	return path.Join(sourceDir, "easifem", pkg)

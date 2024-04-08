@@ -1,14 +1,20 @@
 package cmd
 
-import "github.com/spf13/viper"
+import (
+	"strings"
 
-// this function get a.b.c from the viper
+	"github.com/spf13/viper"
+)
+
+// this function get a bool from install.pkg.key
+// this function get a bool from env.key
 // it uses the default value d
-func get_bool_value(a, b, c string, d bool) bool {
-	key := a + "." + b + "." + c
-	if viper.IsSet(key) {
+func install_get_bool_value(pkg, key string, val bool) bool {
+	if key := strings.Join([]string{"install", pkg, key}, "."); viper.IsSet(key) {
 		return viper.GetBool(key)
 	}
-
-	return d
+	if key := strings.Join([]string{easifem_current_env_name, key}, "."); viper.IsSet(key) {
+		return viper.GetBool(key)
+	}
+	return val
 }
