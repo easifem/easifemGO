@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -501,74 +502,57 @@ func pkgRunCmd(cargs []string, pkg, step string) {
 	}
 	cmd := exec.Command(cargs[0], cargs[1:]...)
 
-	stderr, err := cmd.StderrPipe()
+	output_stdout := make(chan []byte)
+
+	go pkgExecuteCmd(cmd, output_stdout)
+
+	if !quiet {
+		for data := range output_stdout {
+			log.Println(string(data))
+		}
+	} else {
+		for range output_stdout {
+		}
+	}
+}
+
+//----------------------------------------------------------------------------
+//                                                              pkgExecuteCmd
+//----------------------------------------------------------------------------
+
+func pkgExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte) {
+	defer close(output_stdout)
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		log.Fatalln("[err] :: pkgRunCmd.go | cmd.StderrPipe() ➡️ ", err)
-	}
-	stderr_scanner := bufio.NewScanner(stderr)
-
-	// stdout, err := cmd.StdoutPipe()
-	// if err != nil {
-	// 	log.Fatalln("[err] :: pkgRunCmd.go | cmd.StdoutPipe() ➡️ ", err)
-	// }
-
-	// stdout_scanner := bufio.NewScanner(stdout)
-	// if err != nil {
-	// 	log.Fatalln("[err] :: pkgRunCmd.go | cmd.StdoutPipe() ➡️ ", err)
-	// }
-
-	if err := cmd.Start(); err != nil {
-		log.Fatalln("[err] :: pkgRunCmd.go | cmd.Start() ➡️ ", err)
-	}
-
-	stderr_scanner.Split(bufio.ScanLines)
-	isok := false
-	for stderr_scanner.Scan() {
-		m := stderr_scanner.Text()
-		if !isok {
-			isok = strings.Contains(m, "Error") || strings.Contains(m, "error")
-		}
-
-		if isok {
-			log.Println("[log] :: pkgRunCmd.go: ", m)
-		} else if !quiet {
-			log.Println("[log] :: pkgRunCmd.go: ", m)
-		}
-	}
-
-	if stderr_scanner.Err() != nil {
-		if err := cmd.Process.Kill(); err != nil {
-			log.Fatalln("[err] :: pkgRunCmd.go | cmd.Process.Kill(): ", err)
-		}
-
-		if err := cmd.Wait(); err != nil {
-			log.Fatalln("[err] :: pkgRunCmd.go | cmd.Wait(): ", err)
-		}
-
+		log.Println(err)
+		output_stdout <- []byte(fmt.Sprintf("Error getting stdout pipe: %v", err))
 		return
 	}
 
-	// if !quiet {
-	// 	stdout_scanner.Split(bufio.ScanLines)
-	// 	for stdout_scanner.Scan() {
-	// 		log.Println(stdout_scanner.Text())
-	// 	}
-	//
-	// 	if stdout_scanner.Err() != nil {
-	// 		if err := cmd.Process.Kill(); err != nil {
-	// 			log.Fatalln("[err] :: pkgRunCmd.go | cmd.Process.Kill(): ", err)
-	// 		}
-	//
-	// 		if err := cmd.Wait(); err != nil {
-	// 			log.Fatalln("[err] :: pkgRunCmd.go | cmd.Wait(): ", err)
-	// 		}
-	//
-	// 		return
-	// 	}
-	// }
+	cmd.Stderr = cmd.Stdout
+	stdout_scanner := bufio.NewScanner(stdout)
 
-	if err := cmd.Wait(); err != nil {
-		log.Fatalln("[err] :: pkgRunCmd.go | cmd.Wait(): ", err)
+	done := make(chan struct{})
+
+	err = cmd.Start()
+	if err != nil {
+		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
+		return
+	}
+
+	go func() {
+		for stdout_scanner.Scan() {
+			output_stdout <- stdout_scanner.Bytes()
+		}
+		done <- struct{}{}
+	}()
+
+	<-done
+
+	err = cmd.Wait()
+	if err != nil {
+		fmt.Println(err)
+		output_stdout <- []byte(fmt.Sprintf("Error waiting for the script to complete: %v", err))
 	}
 }
 

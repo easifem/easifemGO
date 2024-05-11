@@ -34,7 +34,6 @@ var installCmd = &cobra.Command{
 				if err := installExtPkgs(pwd); err != nil {
 					log.Fatalln("[err] :: install.go | installExtPkgs() ➡ ", err)
 				}
-				return
 			}
 
 			if err := installPkgs(pkg, pwd); err != nil {
