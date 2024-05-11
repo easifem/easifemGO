@@ -28,7 +28,7 @@ var cleanCmd = &cobra.Command{
 		}
 		for _, pkg := range args {
 			if pkg == "extpkgs" {
-				pkgs := get_ext_pkgs()
+				pkgs := pkgGetExtPkgs()
 				for _, p := range pkgs {
 					cleanPkgs(p, pwd)
 				}
@@ -42,8 +42,8 @@ var cleanCmd = &cobra.Command{
 // clean a package
 func cleanPkgs(pkg, pwd string) {
 	// source_dir := install_get_source_dir(pkg)
-	build_dir := install_get_build_dir(pkg)
-	install_dir := install_get_install_dir(pkg)
+	build_dir := pkgGetBuildDirFromViper(pkg)
+	install_dir := pkgGetInstallDirFromViper(pkg)
 
 	if pwd == build_dir {
 		log.Println("[log] :: clean.go() | build_dir is same as current dir")

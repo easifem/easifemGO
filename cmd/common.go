@@ -131,6 +131,7 @@ var (
 	sourceDir                string
 	buildDir                 string
 	installDir               string
+	configPath               string             // config file name with extension
 	configFile               string             // config file name with extension
 	buildType                string = "Release" // build type "Release", "Debug"
 	buildSharedLibs                 = true

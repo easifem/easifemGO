@@ -30,6 +30,7 @@ var rootCmd = &cobra.Command{
 }
 
 func showConfig() {
+	fmt.Println("configPath: ", configPath)
 	fmt.Println("configFile: ", configFile)
 	fmt.Println("envName: ", easifem_current_env_name)
 	fmt.Println("quiet: ", quiet)
@@ -95,7 +96,11 @@ func initConfig() {
 		easifem_current_env_name = viper.GetString("envName")
 		quiet = viper.GetBool(easifem_current_env_name + ".quiet")
 		configFile = viper.ConfigFileUsed()
-		log.Println("[log] :: root.go | Success in reading config file ➡️ " + viper.ConfigFileUsed())
+		configPath = path.Dir(configFile)
+		if !quiet {
+			log.Println("[log] :: root.go | Success in reading config file ➡️ " + viper.ConfigFileUsed())
+		}
+
 	} else {
 		log.Fatalln("[err] :: root.go | viper.ReadInConfig() ➡ ", err)
 	}
