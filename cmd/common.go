@@ -113,28 +113,62 @@ const (
 	// easifem_version_patch  int    = 5
 	// easifem_version_string string = "23.10.05"
 
-	easifem_config_dir  = "easifem"
-	easifem_config_name = "easifem"
-	easifem_config_type = "toml"
-
+	easifem_config_dir       = "easifem"
+	easifem_config_name      = "easifem"
+	easifem_config_type      = "toml"
 	easifem_install_dir      = "$HOME/.easifem/install"
 	easifem_build_dir        = "$HOME/.easifem/build"
 	easifem_source_dir       = "$HOME/.easifem/src"
 	easifem_default_env_name = "env"
-
-	easifem_build_type = "Release" // default value of buil;d type
+	easifem_build_type       = "Release" // default value of buil;d type
+	easifem_pkg_config_dir   = "plugins"
+	easifem_build_system     = "cmake"
 )
 
 var (
 	quiet bool
 	// debugMode  bool
-	sourceDir                string
-	buildDir                 string
-	installDir               string
-	configPath               string             // config file name with extension
-	configFile               string             // config file name with extension
-	buildType                string = "Release" // build type "Release", "Debug"
-	buildSharedLibs                 = true
-	buildStaticLibs                 = false
-	easifem_current_env_name        = easifem_default_env_name
+	sourceDir  string
+	buildDir   string
+	installDir string
+	configPath string // config file name with extension
+	configFile string // config file name with extension
+	// buildType                string = "Release" // build type "Release", "Debug"
+	// buildSharedLibs                 = true
+	// buildStaticLibs                 = false
+	easifem_current_env_name = easifem_default_env_name
 )
+
+type Cache struct {
+	LD_LIBRARY_PATH []string // LD_LIBRARY_PATH
+	INSTALL_DIRS    []string // INSTALL DIRS
+}
+
+//----------------------------------------------------------------------------
+//                                                                       Pkg
+//----------------------------------------------------------------------------
+
+type Pkg struct {
+	BuildDir        string
+	BuildOptions    []string
+	BuildSharedLibs bool
+	BuildStaticLibs bool
+	BuildSystem     string
+	BuildType       string
+	CmakePrefixPath []string
+	Dependencies    []string
+	EnvVars         map[string]string
+	Git             string
+	InstallDir      string
+	IsActive        bool
+	IsExtPkg        bool
+	LdLibraryPath   []string
+	License         string
+	Name            string
+	RunTest         bool
+	SourceDir       string
+	TargetName      string
+	Url             string
+}
+
+var easifem_pkgs = make(map[string]*Pkg)

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -22,32 +23,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-const pkgConfigDir = "plugins"
-
-type Pkg struct {
-	BuildDir        string
-	BuildOptions    []string
-	BuildSharedLibs bool
-	BuildStaticLibs bool
-	BuildSystem     string
-	BuildType       string
-	CmakePrefixPath []string
-	Dependencies    []string
-	EnvVars         map[string]string
-	Git             string
-	InstallDir      string
-	IsActive        bool
-	IsExtPkg        bool
-	License         string
-	Name            string
-	RunTest         bool
-	SourceDir       string
-	TargetName      string
-	Url             string
-}
-
 //----------------------------------------------------------------------------
-//                                                                   PkgMake
+//                                                                    PkgMake
 //----------------------------------------------------------------------------
 
 func PkgMake(pkg *Pkg, pwd string) {
@@ -57,14 +34,26 @@ func PkgMake(pkg *Pkg, pwd string) {
 		path.Join(pkg.SourceDir, "configure"),
 		"--prefix=" + pkg.InstallDir,
 	}
+
+	var err error
+
 	cargs = append(cargs, pkg.BuildOptions...)
-	pkgRunCmd(cargs, pkg.Name, "[config]")
+	err = pkgRunCmd(cargs, pkg.Name, "[config]")
+	if err != nil {
+		log.Fatalf("[err] :: PkgMake() | config step failed %v", err)
+	}
 
 	cargs = []string{"make"}
-	pkgRunCmd(cargs, pkg.Name, "[build]")
+	err = pkgRunCmd(cargs, pkg.Name, "[build]")
+	if err != nil {
+		log.Fatalf("[err] :: PkgMake() | build step failed %v", err)
+	}
 
 	cargs = []string{"make", "install"}
-	pkgRunCmd(cargs, pkg.Name, "[install]")
+	err = pkgRunCmd(cargs, pkg.Name, "[install]")
+	if err != nil {
+		log.Fatalf("[err] :: PkgMake() | install step failed %v", err)
+	}
 
 	change_dir(pwd)
 }
@@ -85,18 +74,45 @@ func PkgCmake(pkg *Pkg, pwd string) {
 		"-D BUILD_STATIC_LIBS:BOOL=" + cmakeOnOff(pkg.BuildStaticLibs),
 	}
 
+	if !pkg.IsExtPkg {
+		for _, name := range pkgGetExtPkgs() {
+			p, err := PkgMakeFromToml(name)
+			if err != nil {
+				log.Fatalf("[err] :: PkgCmake() | %v", err)
+			}
+
+			// check if the install dir exists
+			if p.IsActive {
+				if _, err = os.Stat(configPath); !os.IsNotExist(err) {
+					pkg.CmakePrefixPath = append(pkg.CmakePrefixPath, p.InstallDir)
+					log.Println("[log] :: PkgCmake() | pkg.CmakePrefixPath ➡️ ", pkg.CmakePrefixPath)
+				}
+			}
+
+		}
+	}
+
 	if len(pkg.CmakePrefixPath) != 0 {
 		cargs = append(cargs, "-D CMAKE_PREFIX_PATH:PATH="+strings.Join(pkg.CmakePrefixPath, ";"))
 	}
 
 	cargs = append(cargs, pkg.BuildOptions...)
-	pkgRunCmd(cargs, pkg.Name, "[config]")
+	err := pkgRunCmd(cargs, pkg.Name, "[config]")
+	if err != nil {
+		log.Fatalf("[err] :: PkgCmake() | config step failed %v", err)
+	}
 
 	cargs = []string{"cmake", "--build", pkg.BuildDir}
-	pkgRunCmd(cargs, pkg.Name, "[build]")
+	err = pkgRunCmd(cargs, pkg.Name, "[build]")
+	if err != nil {
+		log.Fatalf("[err] :: PkgCmake() | build step failed %v", err)
+	}
 
 	cargs = []string{"cmake", "--install", pkg.BuildDir}
-	pkgRunCmd(cargs, pkg.Name, "[install]")
+	err = pkgRunCmd(cargs, pkg.Name, "[install]")
+	if err != nil {
+		log.Fatalf("[err] :: PkgCmake() | install step failed %v", err)
+	}
 }
 
 //----------------------------------------------------------------------------
@@ -144,25 +160,31 @@ func PkgInstall(pkg *Pkg, pwd string) error {
 //----------------------------------------------------------------------------
 
 // Make pkg from toml file
-func PkgMakeFromToml(tomlFile string) (*Pkg, error) {
+func PkgMakeFromToml(pkg string) (*Pkg, error) {
 	var p *Pkg
+	var err error
+	tomlFile := path.Join(configPath, easifem_pkg_config_dir, pkg+".toml")
 
 	if !quiet {
-		log.Println("[log] :: pkg.go | MakePkgFromToml() ➡️ ", tomlFile)
+		log.Printf("[log] :: pkg.go | PkgMakeFromToml() pkg=%s, file=%s➡️ ",
+			pkg, tomlFile)
 	}
 
 	p = &Pkg{IsActive: true, IsExtPkg: false}
-	// meta, err := toml.DecodeFile(tomlFile, &p)
-	_, err := toml.DecodeFile(tomlFile, p)
+	_, err = toml.DecodeFile(tomlFile, p)
 	if err != nil {
 		return p, err
 	}
 
-	if err := PkgCheckAndFix(p); err != nil {
+	if err = PkgCheckAndFix(p); err != nil {
 		return p, err
 	}
 
-	return p, nil
+	if err != nil {
+		p, err = PkgMakeFromViper(pkg)
+	}
+
+	return p, err
 }
 
 //----------------------------------------------------------------------------
@@ -228,8 +250,13 @@ func PkgCheckAndFix(pkg *Pkg) error {
 		pkg.EnvVars = pkgGetEnvVarsFromViper(pkg.Name)
 	}
 
+	if len(pkg.LdLibraryPath) == 0 {
+		pkg.LdLibraryPath = append(pkg.LdLibraryPath,
+			pkgGetLdLibraryPathFromViper(pkg.Name)...)
+	}
+
 	if pkg.BuildType == "" {
-		pkg.BuildType = "Release"
+		pkg.BuildType = easifem_build_type
 	}
 
 	if pkg.BuildSharedLibs && pkg.BuildStaticLibs {
@@ -331,6 +358,24 @@ func pkgMakeDir(dir string) {
 //                                                            pkgGetEnvVars
 //----------------------------------------------------------------------------
 
+// Get LD_LIBRARY_PATH from viper
+func pkgGetLdLibraryPathFromViper(pkg string) []string {
+	const KEY = ".ldLibraryPath"
+	var ans []string
+
+	if key := pkg + KEY; viper.IsSet(key) {
+		ans = viper.GetStringSlice(key)
+	} else if key := easifem_current_env_name + KEY; viper.IsSet(key) {
+		ans = viper.GetStringSlice(key)
+	}
+
+	return ans
+}
+
+//----------------------------------------------------------------------------
+//                                                            pkgGetEnvVars
+//----------------------------------------------------------------------------
+
 func pkgGetEnvVarsFromViper(pkg string) map[string]string {
 	ans := make(map[string]string)
 
@@ -366,7 +411,7 @@ func pkgGetBuildSystemFromViper(name string) string {
 		return viper.GetString(key)
 	}
 
-	return "cmake"
+	return easifem_build_system
 }
 
 //----------------------------------------------------------------------------
@@ -488,7 +533,7 @@ func cmakeOnOff(a bool) string {
 //                                                                pkgRunCmd
 //----------------------------------------------------------------------------
 
-func pkgRunCmd(cargs []string, pkg, step string) {
+func pkgRunCmd(cargs []string, pkg, step string) error {
 	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
 	s.Suffix = " installing " + pkg + " cmd: " + cargs[0] + " " + step
 	_ = s.Color("red")
@@ -504,7 +549,8 @@ func pkgRunCmd(cargs []string, pkg, step string) {
 
 	output_stdout := make(chan []byte)
 
-	go pkgExecuteCmd(cmd, output_stdout)
+	var err error
+	go pkgExecuteCmd(cmd, output_stdout, err)
 
 	if !quiet {
 		for data := range output_stdout {
@@ -514,15 +560,19 @@ func pkgRunCmd(cargs []string, pkg, step string) {
 		for range output_stdout {
 		}
 	}
+
+	return err
 }
 
 //----------------------------------------------------------------------------
 //                                                              pkgExecuteCmd
 //----------------------------------------------------------------------------
 
-func pkgExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte) {
+func pkgExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
 	defer close(output_stdout)
-	stdout, err := cmd.StdoutPipe()
+	var stdout io.ReadCloser
+
+	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		log.Println(err)
 		output_stdout <- []byte(fmt.Sprintf("Error getting stdout pipe: %v", err))
@@ -569,10 +619,10 @@ func pkgGetExtPkgs() []string {
 	}
 
 	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
-		mypath := path.Join(configPath, pkgConfigDir)
+		mypath := path.Join(configPath, easifem_pkg_config_dir)
 		entries, err2 := os.ReadDir(mypath)
 		if err2 != nil {
-			log.Fatalln("[err] :: get_ext_pkgs.go | get_ext_pkgs() ➡️ ", err2)
+			log.Fatalln("[err] :: pkg.go | pkgGetExtPkgs() ➡️ ", err2)
 		}
 
 		ans := make([]string, len(entries))
@@ -587,4 +637,60 @@ func pkgGetExtPkgs() []string {
 	}
 
 	return []string{"sparsekit", "lapack95", "fftw", "superlu", "arpack", "tomlf", "lis"}
+}
+
+//----------------------------------------------------------------------------
+//                                                             pkgAllPkgNames
+//----------------------------------------------------------------------------
+
+// This function reads env.extpkgs from the viper if it exists
+// otherwise it reads all the pkgs in the cofig directory's extpkgs
+// If config directory is not available, then it returns the default external packages
+func pkgGetAllNames() []string {
+	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
+		mypath := path.Join(configPath, easifem_pkg_config_dir)
+		entries, err2 := os.ReadDir(mypath)
+		if err2 != nil {
+			log.Fatalln("[err] :: pkg.go | pkgGetExtPkgs() ➡️ ", err2)
+		}
+
+		ans := make([]string, len(entries))
+		const suffix = ".toml"
+
+		for i, e := range entries {
+			ans[i] = strings.TrimSuffix(e.Name(), suffix)
+		}
+
+		return ans
+
+	}
+
+	return make([]string, 0)
+}
+
+//----------------------------------------------------------------------------
+//                                                      makeAllPkgsFromToml
+//----------------------------------------------------------------------------
+
+// This function is called in the root command
+
+func makeAllPkgsFromToml() error {
+	// read all packages from toml file
+	pkgs := pkgGetAllNames()
+
+	var err error
+	var p *Pkg
+
+	for _, pkg := range pkgs {
+		p, err = PkgMakeFromToml(pkg)
+		if err != nil {
+			err = fmt.Errorf("makeAllPkgsFromToml() pkg=%s, err=%w", pkg, err)
+			break
+		}
+
+		easifem_pkgs[p.Name] = p
+
+	}
+
+	return err
 }

@@ -54,11 +54,12 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "",
 		"Config file name with extension (e.g. easifem.toml)")
 
-	rootCmd.PersistentFlags().BoolP("quiet", "q", false, "Run commands in quiet mode.")
-	if err := viper.BindPFlag(easifem_current_env_name+".quiet",
-		rootCmd.PersistentFlags().Lookup("quiet")); err != nil {
-		log.Fatalln("[err] :: root.go | viper.BindPFlag() ➡ ", err)
-	}
+	rootCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false,
+		"Run commands in quiet mode.")
+	// if err := viper.BindPFlag(easifem_current_env_name+".quiet",
+	// 	rootCmd.PersistentFlags().Lookup("quiet")); err != nil {
+	// 	log.Fatalln("[err] :: root.go | viper.BindPFlag() ➡ ", err)
+	// }
 
 	rootCmd.PersistentFlags().StringVar(&easifem_current_env_name,
 		"env", easifem_default_env_name, "Current environment name")
@@ -94,14 +95,46 @@ func initConfig() {
 
 	if err := viper.ReadInConfig(); err == nil {
 		easifem_current_env_name = viper.GetString("envName")
-		quiet = viper.GetBool(easifem_current_env_name + ".quiet")
+		// quiet = viper.GetBool(easifem_current_env_name + ".quiet")
 		configFile = viper.ConfigFileUsed()
 		configPath = path.Dir(configFile)
-		if !quiet {
-			log.Println("[log] :: root.go | Success in reading config file ➡️ " + viper.ConfigFileUsed())
-		}
-
+		// if !quiet {
+		// 	log.Println("[log] :: root.go | Success in reading config file ➡️ " + viper.ConfigFileUsed())
+		// }
 	} else {
 		log.Fatalln("[err] :: root.go | viper.ReadInConfig() ➡ ", err)
 	}
+
+	if err := makeAllPkgsFromToml(); err != nil {
+		log.Fatalln("[err] :: root.go | initConfig() ➡ ", err)
+	}
 }
+
+// func readCache() (*Cache, error) {
+// 	// read cache
+//
+// 	var c *Cache
+// 	var err error
+// 	tomlFile := path.Join(configPath, easifem_pkg_config_dir, pkg+".toml")
+//
+// 	if !quiet {
+// 		log.Printf("[log] :: pkg.go | PkgMakeFromToml() pkg=%s, file=%s➡️ ",
+// 			pkg, tomlFile)
+// 	}
+//
+// 	p = &Pkg{IsActive: true, IsExtPkg: false}
+// 	_, err = toml.DecodeFile(tomlFile, p)
+// 	if err != nil {
+// 		return p, err
+// 	}
+//
+// 	if err = PkgCheckAndFix(p); err != nil {
+// 		return p, err
+// 	}
+//
+// 	if err != nil {
+// 		p, err = PkgMakeFromViper(pkg)
+// 	}
+//
+// 	return p, err
+// }

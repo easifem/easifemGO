@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 
 	"github.com/spf13/cobra"
 )
@@ -29,14 +28,13 @@ var installCmd = &cobra.Command{
 		}
 
 		for _, pkg := range args {
-
+			var err error
 			if pkg == "extpkgs" {
-				if err := installExtPkgs(pwd); err != nil {
-					log.Fatalln("[err] :: install.go | installExtPkgs() ➡ ", err)
-				}
+				err = installExtPkgs(pwd)
+			} else {
+				err = installPkgs(pkg, pwd)
 			}
-
-			if err := installPkgs(pkg, pwd); err != nil {
+			if err != nil {
 				log.Fatalln("[err] :: install.go | installPkgs() ➡ ", err)
 			}
 
@@ -50,22 +48,24 @@ var installCmd = &cobra.Command{
 
 // install a single package
 func installPkgs(pkg, pwd string) error {
-	p, err := PkgMakeFromToml(path.Join(configPath, pkgConfigDir, pkg+".toml"))
+	var p *Pkg
+	var err error
+
+	if !quiet {
+		log.Println("[log] :: install.go | installPkgs() | pkg ➡️ ", pkg)
+	}
+
+	p, err = PkgMakeFromToml(pkg)
 	if err != nil {
-		log.Println("[log] :: install.go | installPkgs() | PkgMakeFromToml failed ➡️ ", err)
-		log.Println("[log] ::                            | trying PkgMakeFromViper() ➡️ ", err)
-		p, err = PkgMakeFromViper(pkg)
+		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
 	}
 
+	err = PkgInstall(p, pwd)
 	if err != nil {
-		log.Fatalln("[err] :: install.go | installPkgs() or PkgMakeFromViper() | pkg=", pkg, " ➡️ ", err)
+		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
 	}
 
-	if err = PkgInstall(p, pwd); err != nil {
-		log.Fatalln("[err] :: install.go | installPkgs() | PkgInstall() | pkg=", pkg, " ➡️ ", err)
-	}
-
-	return nil
+	return err
 }
 
 //----------------------------------------------------------------------------
@@ -75,31 +75,30 @@ func installPkgs(pkg, pwd string) error {
 // install a package
 func installExtPkgs(pwd string) error {
 	pkgs := pkgGetExtPkgs()
-
-	if !quiet {
-		log.Println("[log] :: install.go | installExtPkgs() | extpkgs ➡️ ", pkgs)
-	}
+	var p *Pkg
+	var err error
 
 	for _, pkg := range pkgs {
 
-		p, err := PkgMakeFromToml(path.Join(configPath, pkgConfigDir, pkg+".toml"))
+		p, err = PkgMakeFromToml(pkg)
 		if err != nil {
-			p, err = PkgMakeFromViper(pkg)
-		}
-
-		if err != nil {
-			log.Fatalln("[err] :: install.go | installExtPkgs() | pkg=", pkg, " ➡️ ", err)
+			return fmt.Errorf("installExtPkgs() | pkg=%s, err=%w", pkg, err)
 		}
 
 		if p.IsExtPkg {
-			if err := PkgInstall(p, pwd); err != nil {
-				log.Fatalln("[err] :: install.go | PkgInstall() | pkg=", pkg, " ➡️ ", err)
+			if !quiet {
+				log.Println("[log] :: install.go | installExtPkgs() | pkg ➡️ ", pkg)
+			}
+
+			err = PkgInstall(p, pwd)
+			if err != nil {
+				return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
 			}
 		}
 
 	}
 
-	return nil
+	return err
 }
 
 //----------------------------------------------------------------------------

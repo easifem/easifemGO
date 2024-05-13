@@ -5,7 +5,6 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -21,7 +20,7 @@ var cleanCmd = &cobra.Command{
 	Long:  easifem_clean_intro,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(easifem_banner)
+		// fmt.Println(easifem_banner)
 		pwd, err := os.Getwd()
 		if err != nil {
 			log.Fatalln("[err] :: clean.go | os.Getwd() ➡️ ", err)
