@@ -48,19 +48,7 @@ var installCmd = &cobra.Command{
 
 // install a single package
 func installPkgs(pkg, pwd string) error {
-	var p *Pkg
-	var err error
-
-	if !quiet {
-		log.Println("[log] :: install.go | installPkgs() | pkg ➡️ ", pkg)
-	}
-
-	p, err = PkgMakeFromToml(pkg)
-	if err != nil {
-		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
-	}
-
-	err = PkgInstall(p, pwd)
+	err := PkgInstall(easifem_pkgs[pkg], pwd)
 	if err != nil {
 		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
 	}
@@ -74,17 +62,9 @@ func installPkgs(pkg, pwd string) error {
 
 // install a package
 func installExtPkgs(pwd string) error {
-	pkgs := pkgGetExtPkgs()
-	var p *Pkg
 	var err error
 
-	for _, pkg := range pkgs {
-
-		p, err = PkgMakeFromToml(pkg)
-		if err != nil {
-			return fmt.Errorf("installExtPkgs() | pkg=%s, err=%w", pkg, err)
-		}
-
+	for pkg, p := range easifem_pkgs {
 		if p.IsExtPkg {
 			if !quiet {
 				log.Println("[log] :: install.go | installExtPkgs() | pkg ➡️ ", pkg)
@@ -95,7 +75,6 @@ func installExtPkgs(pwd string) error {
 				return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
 			}
 		}
-
 	}
 
 	return err

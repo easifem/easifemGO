@@ -74,44 +74,35 @@ func PkgCmake(pkg *Pkg, pwd string) {
 		"-D BUILD_STATIC_LIBS:BOOL=" + cmakeOnOff(pkg.BuildStaticLibs),
 	}
 
-	if !pkg.IsExtPkg {
-		for _, name := range pkgGetExtPkgs() {
-			p, err := PkgMakeFromToml(name)
-			if err != nil {
-				log.Fatalf("[err] :: PkgCmake() | %v", err)
-			}
+	var err error
 
-			// check if the install dir exists
-			if p.IsActive {
-				if _, err = os.Stat(configPath); !os.IsNotExist(err) {
-					pkg.CmakePrefixPath = append(pkg.CmakePrefixPath, p.InstallDir)
-					log.Println("[log] :: PkgCmake() | pkg.CmakePrefixPath ➡️ ", pkg.CmakePrefixPath)
-				}
-			}
-
-		}
+	if len(easifem_cache.INSTALL_DIRS) != 0 {
+		cargs = append(cargs, "-D CMAKE_PREFIX_PATH:PATH="+strings.Join(easifem_cache.INSTALL_DIRS, ";"))
 	}
 
-	if len(pkg.CmakePrefixPath) != 0 {
-		cargs = append(cargs, "-D CMAKE_PREFIX_PATH:PATH="+strings.Join(pkg.CmakePrefixPath, ";"))
-	}
+	// if len(easifem_cache.LD_LIBRARY_PATH) != 0 {
+	// 	// ldpath = os.Getenv("LD_LIBRARY_PATH")
+	// 	os.Setenv("LD_LIBRARY_PATH", strings.Join(easifem_cache.LD_LIBRARY_PATH, ":"))
+	// 	ldpath := os.Getenv("LD_LIBRARY_PATH")
+	// 	log.Println("[log] :: pkg.go | PkgCmake() | LD_LIBRARY_PATH=", ldpath)
+	// }
 
 	cargs = append(cargs, pkg.BuildOptions...)
-	err := pkgRunCmd(cargs, pkg.Name, "[config]")
+	err = pkgRunCmd(cargs, pkg.Name, "[config]")
 	if err != nil {
-		log.Fatalf("[err] :: PkgCmake() | config step failed %v", err)
+		log.Fatalf("[err] :: pkg.go | PkgCmake() | config step failed %v", err)
 	}
 
 	cargs = []string{"cmake", "--build", pkg.BuildDir}
 	err = pkgRunCmd(cargs, pkg.Name, "[build]")
 	if err != nil {
-		log.Fatalf("[err] :: PkgCmake() | build step failed %v", err)
+		log.Fatalf("[err] :: pkg.go | PkgCmake() | build step failed %v", err)
 	}
 
 	cargs = []string{"cmake", "--install", pkg.BuildDir}
 	err = pkgRunCmd(cargs, pkg.Name, "[install]")
 	if err != nil {
-		log.Fatalf("[err] :: PkgCmake() | install step failed %v", err)
+		log.Fatalf("[err] :: pkg.go | PkgCmake() | install step failed %v", err)
 	}
 }
 
@@ -132,7 +123,10 @@ func PkgInstall(pkg *Pkg, pwd string) error {
 		return nil
 	}
 
-	pkgDownloadPkg(pkg.Url, pkg.SourceDir, pwd)
+	if !noDownload {
+		pkgDownloadPkg(pkg.Url, pkg.SourceDir, pwd)
+	}
+
 	pkgMakeDir(pkg.InstallDir)
 
 	for k, v := range pkg.EnvVars {
@@ -166,7 +160,7 @@ func PkgMakeFromToml(pkg string) (*Pkg, error) {
 	tomlFile := path.Join(configPath, easifem_pkg_config_dir, pkg+".toml")
 
 	if !quiet {
-		log.Printf("[log] :: pkg.go | PkgMakeFromToml() pkg=%s, file=%s➡️ ",
+		log.Printf("[log] :: pkg.go | PkgMakeFromToml() pkg=%s, file=%s",
 			pkg, tomlFile)
 	}
 
@@ -193,7 +187,7 @@ func PkgMakeFromToml(pkg string) (*Pkg, error) {
 
 // This function prints the pkg by using log.Println
 func PkgLogPrint(p *Pkg) {
-	log.Println("[log] :: pkg.go | PkgLogPrint() ➡️ ")
+	log.Println("[log] :: pkg.go | PkgLogPrint()")
 	indent := "[log] :: pkg.go | PkgLogPrint() pkg." + p.Name + "."
 	typ, val := reflect.TypeOf(p), reflect.ValueOf(p)
 	for i := 0; i < typ.NumField(); i++ {
@@ -693,4 +687,89 @@ func makeAllPkgsFromToml() error {
 	}
 
 	return err
+}
+
+// Read the cache
+func readCache() error {
+	var err error
+	cacheFile := path.Join(configPath, easifem_cache_file)
+
+	if !quiet {
+		log.Printf("[log] :: pkg.go | readCache() | cacheFile=%s➡️ ", cacheFile)
+	}
+
+	_, err = toml.DecodeFile(cacheFile, &easifem_cache)
+	if err != nil {
+		return err
+	}
+
+	return err
+}
+
+// Build in memory cache
+func buildCache() {
+	for _, pkg := range easifem_pkgs {
+		if pkg.IsActive {
+			easifem_cache.INSTALL_DIRS = append(easifem_cache.INSTALL_DIRS, pkg.InstallDir)
+			easifem_cache.INSTALL_DIRS = append(easifem_cache.INSTALL_DIRS, pkg.CmakePrefixPath...)
+			easifem_cache.LD_LIBRARY_PATH = append(easifem_cache.LD_LIBRARY_PATH, path.Join(pkg.InstallDir, "lib"))
+			easifem_cache.LD_LIBRARY_PATH = append(easifem_cache.LD_LIBRARY_PATH, pkg.LdLibraryPath...)
+		}
+	}
+}
+
+// Read the cache
+func writeCache() error {
+	cacheFile := path.Join(configPath, easifem_cache_file)
+
+	f, err := os.Create(cacheFile)
+	if err != nil {
+		return fmt.Errorf("writeCache() | error = %w", err)
+	}
+
+	if !quiet {
+		log.Printf("[log] :: pkg.go | writeCache() | cacheFile=%s➡️ ", cacheFile)
+	}
+
+	err = toml.NewEncoder(f).Encode(easifem_cache)
+	if err != nil {
+		return fmt.Errorf("writeCache() | error = %w", err)
+	}
+
+	err = f.Close()
+	if err != nil {
+		return fmt.Errorf("writeCache() | error = %w", err)
+	}
+
+	return err
+}
+
+//----------------------------------------------------------------------------
+//                                                          writeShellVarFle
+//----------------------------------------------------------------------------
+
+// Write easifemvar.sh and easifemvar.fish
+
+func writeShellVarFle() {
+	// open output file
+	fo, err := os.Create(path.Join(configPath, easifem_shell_var_file+".fish"))
+	if err != nil {
+		log.Fatalln("[err] :: pkg.go | writeShellVarFle() | err while opening file => ", err)
+	}
+
+	// close fo on exit and check for its returned error
+	defer func() {
+		if err := fo.Close(); err != nil {
+			log.Fatalln("[err] :: pkg.go | writeShellVarFle() | err while closing file => ", err)
+		}
+	}()
+
+	// make a buffer to keep chunks that are read
+	for _, val := range easifem_cache.LD_LIBRARY_PATH {
+		// write a chunk
+		aline := []byte("set -gx LD_LIBRARY_PATH " + val + " $LD_LIBRARY_PATH\n")
+		if _, err := fo.Write(aline); err != nil {
+			log.Fatalln("[err] :: pkg.go | writeShellVarFle() | err while writing to file => ", err)
+		}
+	}
 }

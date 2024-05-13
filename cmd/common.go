@@ -123,19 +123,18 @@ const (
 	easifem_build_type       = "Release" // default value of buil;d type
 	easifem_pkg_config_dir   = "plugins"
 	easifem_build_system     = "cmake"
+	easifem_cache_file       = "cache.toml"
+	easifem_shell_var_file   = "easifemvar"
 )
 
 var (
-	quiet bool
-	// debugMode  bool
-	sourceDir  string
-	buildDir   string
-	installDir string
-	configPath string // config file name with extension
-	configFile string // config file name with extension
-	// buildType                string = "Release" // build type "Release", "Debug"
-	// buildSharedLibs                 = true
-	// buildStaticLibs                 = false
+	quiet                    bool
+	noDownload               bool
+	sourceDir                string
+	buildDir                 string
+	installDir               string
+	configPath               string // config file name with extension
+	configFile               string // config file name with extension
 	easifem_current_env_name = easifem_default_env_name
 )
 
@@ -143,6 +142,8 @@ type Cache struct {
 	LD_LIBRARY_PATH []string // LD_LIBRARY_PATH
 	INSTALL_DIRS    []string // INSTALL DIRS
 }
+
+var easifem_cache = Cache{}
 
 //----------------------------------------------------------------------------
 //                                                                       Pkg
