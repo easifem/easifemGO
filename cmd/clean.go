@@ -41,8 +41,8 @@ var cleanCmd = &cobra.Command{
 // clean a package
 func cleanPkgs(pkg, pwd string) {
 	// source_dir := install_get_source_dir(pkg)
-	build_dir := pkgGetBuildDirFromViper(pkg)
-	install_dir := pkgGetInstallDirFromViper(pkg)
+	build_dir := easifem_pkgs[pkg].BuildDir
+	install_dir := easifem_pkgs[pkg].InstallDir
 
 	if pwd == build_dir {
 		log.Println("[log] :: clean.go() | build_dir is same as current dir")
