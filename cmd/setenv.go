@@ -27,8 +27,6 @@ var setenvCmd = &cobra.Command{
 		buildDir = viper.GetString(easifem_current_env_name + ".buildDir")
 		sourceDir = viper.GetString(easifem_current_env_name + ".sourceDir")
 		installDir = viper.GetString(easifem_current_env_name + ".installDir")
-
-		showConfig()
 	},
 }
 

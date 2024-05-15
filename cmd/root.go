@@ -25,18 +25,7 @@ var rootCmd = &cobra.Command{
 		if err := cmd.Help(); err != nil {
 			log.Fatalln("[err] :: root.go | cmd.Help() ➡️ ", err)
 		}
-		showConfig()
 	},
-}
-
-func showConfig() {
-	fmt.Println("configPath: ", configPath)
-	fmt.Println("configFile: ", configFile)
-	fmt.Println("envName: ", easifem_current_env_name)
-	fmt.Println("quiet: ", quiet)
-	fmt.Println("buildDir: ", buildDir)
-	fmt.Println("sourceDir: ", sourceDir)
-	fmt.Println("installDir: ", installDir)
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
