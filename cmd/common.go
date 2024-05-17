@@ -19,8 +19,8 @@ Expandable And Scalable Infrastructure for Finite Element Methods
   easifem is a CLI (Command Line Interface) for working with
   EASIFEM platform. It is written in Go language. It contains
   many subcommands which will help user to integrate EASIFEM
-  with their projects. 
-  The user can perform following actions: 
+  with their projects.
+  The user can perform following actions:
 
   - Set environment variable for EASIFEM platform
   - Install/Uninstall/Reinstall components of EASIFEM
@@ -50,16 +50,16 @@ The default value is ${HOME}.
 
 EASIFEM_SOURCE_DIR: specifies the location where the source code of
 the components of EASIFEM will be stored.
-It is specified by --source=value 
+It is specified by --source=value
 
 Following are the good choices for --source variable:
 1) ${HOME}/code/
 The default value is ${HOME}/code.
-EASIFEM_BUILD_DIR: specifies the location where the components of 
-EASIFEM will be build. It is specified by --build=value 
+EASIFEM_BUILD_DIR: specifies the location where the components of
+EASIFEM will be build. It is specified by --build=value
 
 Following are the good choices for --root variable:
-1) ${HOME}/temp 
+1) ${HOME}/temp
 The default value is ${HOME}/temp.
 
 Example:
@@ -82,7 +82,7 @@ You can specify them by using
 easifem setenv --build= --install= --source=
 
 For more see,
-easifem setenv --help 
+easifem setenv --help
 
 Use:
 
@@ -105,6 +105,36 @@ materials: install easifemMaterials
 kernels: install easifemKernels
 `
 
+const easifem_lint_intro = `
+The [lint] subcommand helps you linting the easifem files while building the easifem.
+This command is only for developers. The end users should not use this command.
+
+easifem lint filename [projectname]
+
+projectname can be "base", "classes", or "all"
+Default is "all"
+`
+
+const easifem_run_intro = `
+The [run] subcommand helps you build and run the applications built using easifem.
+
+The [run] subcommand compiles and links an application, which is build
+by using easifem components, such as, base, classes, etc.
+This program can also PARSE a fortran code kept in the code-fences of 
+markdown file with extension [.md]
+The example of code fence which can be used in the markdown file is given below.
+Any thing outside fortran code fence will be ignored by the parser.
+Also you can use as many fences as you want, good for Documentation.
+
+To run this file  you can use:
+
+easifem run filename [projectname]
+
+projectname can be "base", "classes", or "all"
+
+Default is "all"
+`
+
 const easifem_clean_intro = "clean the build directory,  keep source code."
 
 const (
@@ -119,6 +149,7 @@ const (
 	easifem_install_dir      = "$HOME/.easifem/install"
 	easifem_build_dir        = "$HOME/.easifem/build"
 	easifem_source_dir       = "$HOME/.easifem/src"
+	easifem_lint_dir         = "$HOME/.easifem/lint"
 	easifem_default_env_name = "env"
 	easifem_build_type       = "Release" // default value of buil;d type
 	easifem_pkg_config_dir   = "plugins"
@@ -133,6 +164,7 @@ var (
 	sourceDir                string
 	buildDir                 string
 	installDir               string
+	lintDir                  string
 	configPath               string // config file name with extension
 	configFile               string // config file name with extension
 	easifem_current_env_name = easifem_default_env_name
@@ -173,3 +205,52 @@ type Pkg struct {
 }
 
 var easifem_pkgs = make(map[string]*Pkg)
+
+//----------------------------------------------------------------------------
+//                                                                 Linter
+//----------------------------------------------------------------------------
+
+type Linter struct {
+	IncludePath  []string
+	Flags        []string // compiler flags passed during build stage
+	Compiler     string
+	CompilerPath string
+}
+
+//----------------------------------------------------------------------------
+//                                                                    Runner
+//----------------------------------------------------------------------------
+
+type Runner struct {
+	BuildDir             string
+	BuildType            string // Release or Debug
+	CMakeMinimumVersion  string
+	Compiler             string
+	CompilerPath         string
+	ExtraCMakePrefixPath []string // These are extra CMakePrefixPaths
+	ExtraIncludePath     []string // These are additional paths passed to the compiler while building
+	ExtraLibs            []string // These libraries should be either the pull path or they should be installed where ld can find them
+	FileName             string   // name of main.F90
+	Flags                []string
+	IncludePath          []string
+	Language             string
+	LibraryPath          []string
+	ProjectName          string
+	SourceDir            string
+	TargetLibs           []string // These libraries are build using Cmake and Cmake can find theme
+	TargetName           string   // name of executable
+}
+
+const (
+	gfortranArgs        = `"-ffree-form" "-ffree-line-length-none" "-std=f2008" "-fimplicit-none"`
+	gfortranReleaseArgs = `"-O3"`
+	gfortranDebugArgs   = ` "-fbounds-check" "-g" "-fbacktrace" "-Wextra" "-Wall" "-fprofile-arcs" "-ftest-coverage" "-Wimplicit-interface" `
+
+	intelArgs        = `"-r8" "-W1"`
+	intelReleaseArgs = `"-O3"`
+	intelDebugArgs   = `"-O0" "-traceback" "-g" "-debug all" "-check all" "-ftrapuv" "-warn" "nointerfaces"`
+
+	xlfArgs        = `"-q64" "-qrealsize=8" "-qsuffix=f=f90:cpp=f90"`
+	xlfReleaseArgs = `"-O3" "-qstrict"`
+	xlfDebugArgs   = `"-O0" "-g" "-qfullpath" "-qkeepparm"`
+)

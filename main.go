@@ -3,7 +3,7 @@ Copyright © 2024 Vikas Sharma, Ph.D. vickysharma0812@gmail.com
 */
 package main
 
-import "github.com/easifem/easigo/cmd"
+import "github.com/easifem/go/easifem/cmd"
 
 func main() {
 	cmd.Execute()

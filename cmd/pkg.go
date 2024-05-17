@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	"path"
 	"reflect"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -79,13 +78,6 @@ func PkgCmake(pkg *Pkg, pwd string) {
 	if len(easifem_cache.INSTALL_DIRS) != 0 {
 		cargs = append(cargs, "-D CMAKE_PREFIX_PATH:PATH="+strings.Join(easifem_cache.INSTALL_DIRS, ";"))
 	}
-
-	// if len(easifem_cache.LD_LIBRARY_PATH) != 0 {
-	// 	// ldpath = os.Getenv("LD_LIBRARY_PATH")
-	// 	os.Setenv("LD_LIBRARY_PATH", strings.Join(easifem_cache.LD_LIBRARY_PATH, ":"))
-	// 	ldpath := os.Getenv("LD_LIBRARY_PATH")
-	// 	log.Println("[log] :: pkg.go | PkgCmake() | LD_LIBRARY_PATH=", ldpath)
-	// }
 
 	cargs = append(cargs, pkg.BuildOptions...)
 	err = pkgRunCmd(cargs, pkg.Name, "[config]")
@@ -177,6 +169,10 @@ func PkgMakeFromToml(pkg string) (*Pkg, error) {
 	if err != nil {
 		p, err = PkgMakeFromViper(pkg)
 	}
+
+	p.BuildDir = os.ExpandEnv(p.BuildDir)
+	p.InstallDir = os.ExpandEnv(p.InstallDir)
+	p.SourceDir = os.ExpandEnv(p.SourceDir)
 
 	return p, err
 }
@@ -486,30 +482,30 @@ func pkgGetUrlFromViper(pkg string) (string, error) {
 //----------------------------------------------------------------------------
 
 // print the log from toml
-func printLogFromToml(p Pkg, meta toml.MetaData) {
-	log.Printf("[log] :: pkg.go | printLogFromToml() pkg.Name %s, Decoded", p.Name)
-
-	indent := "[log] :: pkg.go | printLogFromToml() pkg." + p.Name + "."
-
-	typ, val := reflect.TypeOf(p), reflect.ValueOf(p)
-	for i := 0; i < typ.NumField(); i++ {
-		log.Printf("%s%-11s → %v\n", indent, typ.Field(i).Name, val.Field(i).Interface())
-	}
-
-	log.Printf("%s Keys", indent)
-	keys := meta.Keys()
-	sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
-	for _, k := range keys {
-		log.Printf("%s%-10s %s\n", indent, meta.Type(k...), k)
-	}
-
-	log.Printf("%s Undecoded", indent)
-	keys = meta.Undecoded()
-	sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
-	for _, k := range keys {
-		log.Printf("%s%-10s %s\n", indent, meta.Type(k...), k)
-	}
-}
+// func printLogFromToml(p Pkg, meta toml.MetaData) {
+// 	log.Printf("[log] :: pkg.go | printLogFromToml() pkg.Name %s, Decoded", p.Name)
+//
+// 	indent := "[log] :: pkg.go | printLogFromToml() pkg." + p.Name + "."
+//
+// 	typ, val := reflect.TypeOf(p), reflect.ValueOf(p)
+// 	for i := 0; i < typ.NumField(); i++ {
+// 		log.Printf("%s%-11s → %v\n", indent, typ.Field(i).Name, val.Field(i).Interface())
+// 	}
+//
+// 	log.Printf("%s Keys", indent)
+// 	keys := meta.Keys()
+// 	sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
+// 	for _, k := range keys {
+// 		log.Printf("%s%-10s %s\n", indent, meta.Type(k...), k)
+// 	}
+//
+// 	log.Printf("%s Undecoded", indent)
+// 	keys = meta.Undecoded()
+// 	sort.Slice(keys, func(i, j int) bool { return keys[i].String() < keys[j].String() })
+// 	for _, k := range keys {
+// 		log.Printf("%s%-10s %s\n", indent, meta.Type(k...), k)
+// 	}
+// }
 
 //----------------------------------------------------------------------------
 //                                                                cmakeOnOff
