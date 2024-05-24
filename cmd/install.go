@@ -21,7 +21,7 @@ var installCmd = &cobra.Command{
 	Long:  easifem_install_intro,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(easifem_banner)
+		// fmt.Println(easifem_banner)
 		pwd, err := os.Getwd()
 		if err != nil {
 			log.Fatalln("[err] :: install.go | os.Getwd() ➡️ ", err)

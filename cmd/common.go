@@ -105,6 +105,20 @@ materials: install easifemMaterials
 kernels: install easifemKernels
 `
 
+const easifem_dev_intro = `
+The [dev] subcommand helps you in developing easifem-components,
+such as base, classes, materials, kernels, etc.
+
+  The library will not install the package. It will just build it, 
+  and show warnings and errors.
+  It will always build in the debug mode.
+  We never download the project.
+
+HOW TO USE:
+  easifem dev base
+  easifem dev classes
+`
+
 const easifem_lint_intro = `
 The [lint] subcommand helps you linting the easifem files while building the easifem.
 This command is only for developers. The end users should not use this command.

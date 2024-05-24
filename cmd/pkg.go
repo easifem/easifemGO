@@ -562,6 +562,11 @@ func pkgExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
 	defer close(output_stdout)
 	var stdout io.ReadCloser
 
+	if err != nil {
+		output_stdout <- []byte(fmt.Sprintf("Error before executing devExecuteCmd(): %v", err))
+		return
+	}
+
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		log.Println(err)
