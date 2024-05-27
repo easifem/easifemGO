@@ -218,6 +218,10 @@ func runRunCmd(cargs []string, qmode bool) error {
 	var err error
 	go runExecuteCmd(cmd, output_stdout, err)
 
+	if err != nil {
+		return err
+	}
+
 	if qmode {
 		for data := range output_stdout {
 			log.Println(string(data))
