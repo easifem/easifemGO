@@ -712,7 +712,13 @@ func buildCache() {
 	for _, pkg := range easifem_pkgs {
 		if pkg.IsActive {
 			easifem_cache.INSTALL_DIRS = append(easifem_cache.INSTALL_DIRS, pkg.InstallDir)
-			easifem_cache.INSTALL_DIRS = append(easifem_cache.INSTALL_DIRS, pkg.CmakePrefixPath...)
+
+			for _, prefixpath := range pkg.CmakePrefixPath {
+				easifem_cache.INSTALL_DIRS = append(easifem_cache.INSTALL_DIRS,
+					os.ExpandEnv(prefixpath))
+			}
+
+			// easifem_cache.INSTALL_DIRS = append(easifem_cache.INSTALL_DIRS, pkg.CmakePrefixPath...)
 			easifem_cache.LD_LIBRARY_PATH = append(easifem_cache.LD_LIBRARY_PATH, path.Join(pkg.InstallDir, "lib"))
 			easifem_cache.LD_LIBRARY_PATH = append(easifem_cache.LD_LIBRARY_PATH, pkg.LdLibraryPath...)
 		}
