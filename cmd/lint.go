@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
 )
 
@@ -56,16 +57,39 @@ var lintCmd = &cobra.Command{
 func lint(filename, projectname, pwd string) error {
 	var err error
 
-	linter := Linter{}
+	linter := Linter{
+		Compiler:     "gfortran",
+		CompilerPath: "",
+		LintDir:      lintDir,
+	}
 
-	linter.Compiler = "gfortran"
+	tomlFile := path.Join(pwd, "linter.toml")
+
+	if _, err = os.Stat(tomlFile); !os.IsNotExist(err) {
+		_, _ = toml.DecodeFile(tomlFile, &linter)
+	}
+
+	tsize := 0
+	tsize = len(linter.IncludePath)
+	temp_inc_path_list := make([]string, 2*tsize)
+
+	for ii, incpath := range linter.IncludePath {
+		temp_inc_path_list[2*ii] = "-I"
+		temp_inc_path_list[2*ii+1] = os.ExpandEnv(incpath)
+	}
+
 	// linter.CompilerPath = ""
-	tsize := len(easifem_cache.INSTALL_DIRS)
+	tsize = tsize + len(easifem_cache.INSTALL_DIRS)
 	linter.IncludePath = make([]string, 2*tsize)
 
+	for ii, v := range temp_inc_path_list {
+		linter.IncludePath[ii] = v
+	}
+
+	tsize = len(temp_inc_path_list)
 	for ii, installDir := range easifem_cache.INSTALL_DIRS {
-		linter.IncludePath[2*ii] = "-I"
-		linter.IncludePath[2*ii+1] = path.Join(installDir, "include")
+		linter.IncludePath[2*ii+tsize] = "-I"
+		linter.IncludePath[2*ii+tsize+1] = path.Join(installDir, "include")
 	}
 
 	linter.Flags = []string{
@@ -109,13 +133,16 @@ func lint(filename, projectname, pwd string) error {
 	cargs = append(cargs, linter.IncludePath...)
 	cargs = append(cargs, linter.Flags...)
 
+	linter.LintDir = os.ExpandEnv(linter.LintDir)
+	pkgMakeDir(linter.LintDir)
+
 	// clean_filename := path.Join(pwd, filename)
 	clean_filename := strings.ReplaceAll(filename, " ", "\\ ")
-	obj_output := path.Join(lintDir, "lib", filepath.Base(filename)+".o")
+	obj_output := path.Join(linter.LintDir, "lib", filepath.Base(filename)+".o")
 
 	cargs = append(cargs,
 		"-J",
-		path.Join(lintDir, "include"),
+		path.Join(linter.LintDir, "include"),
 		"-c",
 		clean_filename,
 		"-o",

@@ -1,2 +1,2 @@
-BuildDir= "$HOME/temp/"
+BuildDir= "/tmp/build"
 BuildType= "Debug"

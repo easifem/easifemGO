@@ -229,6 +229,7 @@ type Linter struct {
 	Flags        []string // compiler flags passed during build stage
 	Compiler     string
 	CompilerPath string
+	LintDir      string // Where to put lint files (.smod, .mod, .o)
 }
 
 //----------------------------------------------------------------------------
