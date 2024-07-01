@@ -254,7 +254,10 @@ type Runner struct {
 	SourceDir            string
 	TargetLibs           []string // These libraries are build using Cmake and Cmake can find theme
 	TargetName           string   // name of executable
+	IsExecute            bool     // If true then we do not run the executable
 }
+
+var noRun = false
 
 const (
 	gfortranArgs        = `"-ffree-form" "-ffree-line-length-none" "-std=f2008" "-fimplicit-none"`
