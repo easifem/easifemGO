@@ -63,6 +63,7 @@ func run(filename, pwd string) error {
 		ProjectName:         "easifemApp",
 		SourceDir:           pwd,
 		TargetName:          "main.out",
+		IsExecute:           noRun,
 	}
 
 	tomlFile := path.Join(pwd, "runner.toml")
@@ -106,6 +107,11 @@ func run(filename, pwd string) error {
 	}
 
 	cargs = []string{path.Join(runner.BuildDir, runner.TargetName)}
+	if runner.IsExecute {
+		log.Println("executable file path: ", cargs)
+		return err
+	}
+
 	log.Println("running cmd: ", cargs)
 	err = runRunCmd(cargs, false)
 	if err != nil {
@@ -121,6 +127,8 @@ func run(filename, pwd string) error {
 
 func init() {
 	rootCmd.AddCommand(runCmd)
+	rootCmd.PersistentFlags().BoolVar(&noRun, "no-run", false,
+		"Only create the binary file and do not run it.")
 }
 
 //----------------------------------------------------------------------------
