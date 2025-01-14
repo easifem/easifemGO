@@ -1,4 +1,4 @@
-module github.com/easifem/go/easifem
+module github.com/easifem/easifemgo
 
 go 1.21.6
 
