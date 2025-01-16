@@ -17,7 +17,7 @@ import (
 // easifem install
 var installCmd = &cobra.Command{
 	Use:   "install pkgname [flags]",
-	Short: "A brief description of your command",
+	Short: "This subcommand install one or more packages including dependencies.",
 	Long:  easifem_install_intro,
 	Args:  cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -29,15 +29,17 @@ var installCmd = &cobra.Command{
 
 		for _, pkg := range args {
 			var err error
-			if pkg == "extpkgs" {
+			switch name := pkg; name {
+			case "extpkgs":
 				err = installExtPkgs(pwd)
-			} else {
+			case "easifem":
+				err = installEasifem(pwd)
+			default:
 				err = installPkgs(pkg, pwd)
 			}
 			if err != nil {
 				log.Fatalln("[err] :: install.go | installPkgs() ➡ ", err)
 			}
-
 		}
 	},
 }
@@ -48,7 +50,14 @@ var installCmd = &cobra.Command{
 
 // install a single package
 func installPkgs(pkg, pwd string) error {
-	err := PkgInstall(easifem_pkgs[pkg], pwd)
+	var err error
+
+	// check if pkg is in the list of easifem_pkgs
+	if _, ok := easifem_pkgs[pkg]; !ok {
+		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
+	}
+
+	err = PkgInstall(easifem_pkgs[pkg], pwd)
 	if err != nil {
 		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
 	}
@@ -68,6 +77,40 @@ func installExtPkgs(pwd string) error {
 		if p.IsExtPkg {
 			if !quiet {
 				log.Println("[log] :: install.go | installExtPkgs() | pkg ➡️ ", pkg)
+			}
+
+			err = PkgInstall(p, pwd)
+			if err != nil {
+				return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
+			}
+		}
+	}
+
+	return err
+}
+
+//----------------------------------------------------------------------------
+//                                                          installEasifem
+//----------------------------------------------------------------------------
+
+// install a package
+func installEasifem(pwd string) error {
+	var err error
+
+	for pkg, p := range easifem_pkgs {
+		switch name := pkg; name {
+		case "base":
+			if !quiet {
+				log.Println("[log] :: install.go | installEasifem() | pkg ➡️ ", pkg)
+			}
+
+			err = PkgInstall(p, pwd)
+			if err != nil {
+				return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
+			}
+		case "classes":
+			if !quiet {
+				log.Println("[log] :: install.go | installEasifem() | pkg ➡️ ", pkg)
 			}
 
 			err = PkgInstall(p, pwd)
