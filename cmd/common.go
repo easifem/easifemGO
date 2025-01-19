@@ -246,6 +246,7 @@ type Runner struct {
 	ExtraIncludePath     []string // These are additional paths passed to the compiler while building
 	ExtraLibs            []string // These libraries should be either the pull path or they should be installed where ld can find them
 	FileName             string   // name of main.F90
+	ExtraFileNames       []string   // extra file names for module etc.  
 	Flags                []string
 	IncludePath          []string
 	Language             string
