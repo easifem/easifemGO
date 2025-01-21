@@ -176,6 +176,10 @@ func makeCmakeFile(runner Runner) []string {
 		cmake = append(cmake, fmt.Sprintf("find_package(%q)\n", lib))
 	}
 
+  for _, file := range runner.ExtraFileNames {
+    runner.FileName = fmt.Sprintf("%s %s", runner.FileName, file)
+  }
+
 	cmake = append(cmake, fmt.Sprintf("add_executable(%s %s)\n", runner.TargetName, runner.FileName))
 
 	target_link_libs := ""

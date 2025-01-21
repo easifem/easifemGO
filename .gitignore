@@ -2,3 +2,4 @@
 build
 __*
 config.log
+.DS_Store
