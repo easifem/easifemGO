@@ -137,13 +137,13 @@ func run(filename, pwd string) error {
 //----------------------------------------------------------------------------
 
 func init() {
-	rootCmd.AddCommand(runCmd)
-	rootCmd.PersistentFlags().BoolVar(&noRun, "no-run", false,
+	runCmd.Flags().BoolVar(&noRun, "no-run", false,
 		"Only create the binary file and do not run it.")
-	rootCmd.PersistentFlags().BoolVar(&cacheClean, "cache-clean", false,
+	runCmd.Flags().BoolVar(&cacheClean, "cache-clean", false,
 		"Clean all cache files and recreate them from scratch")
-	rootCmd.PersistentFlags().BoolVar(&reBuild, "rebuild", false,
+	runCmd.Flags().BoolVar(&reBuild, "rebuild", false,
 		"Clean the build directory first and then build")
+	rootCmd.AddCommand(runCmd)
 }
 
 //----------------------------------------------------------------------------
