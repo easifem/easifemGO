@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 // A simple program demonstrating the spinner component from the Bubbles
 // component library.
