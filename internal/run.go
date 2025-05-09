@@ -2,7 +2,7 @@
 Copyright © 2024 Vikas Sharma vickysharma0812@gmail.com
 */
 
-package cmd
+package internal
 
 import (
 	"bufio"

@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 const easifem_banner string = `
     ███████╗ █████╗ ███████╗██╗███████╗███████╗███╗   ███╗

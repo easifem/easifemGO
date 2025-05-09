@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 const (
 	preset_version      = 7
