@@ -2,7 +2,7 @@
 Copyright © 2024 Vikas Sharma vickysharma0812@gmail.com
 */
 
-package cmd
+package internal
 
 import (
 	"bufio"
@@ -64,6 +64,8 @@ func run(filename, pwd string) error {
 		SourceDir:           pwd,
 		TargetName:          "main.out",
 		IsExecute:           noRun,
+		CacheClean:          cacheClean,
+		ReBuild:             reBuild,
 	}
 
 	tomlFile := path.Join(pwd, "runner.toml")
@@ -93,6 +95,10 @@ func run(filename, pwd string) error {
 		"-D CMAKE_BUILD_TYPE:STRING=" + runner.BuildType,
 	}
 
+	if runner.CacheClean {
+		cargs = append(cargs, "--fresh")
+	}
+
 	log.Println("running cmd: ", cargs)
 	err = runRunCmd(cargs, true)
 	if err != nil {
@@ -100,6 +106,11 @@ func run(filename, pwd string) error {
 	}
 
 	cargs = []string{"cmake", "--build", runner.BuildDir}
+
+	if runner.ReBuild {
+		cargs = append(cargs, "--clean-first")
+	}
+
 	log.Println("running cmd: ", cargs)
 	err = runRunCmd(cargs, true)
 	if err != nil {
@@ -126,9 +137,13 @@ func run(filename, pwd string) error {
 //----------------------------------------------------------------------------
 
 func init() {
-	rootCmd.AddCommand(runCmd)
-	rootCmd.PersistentFlags().BoolVar(&noRun, "no-run", false,
+	runCmd.Flags().BoolVar(&noRun, "no-run", false,
 		"Only create the binary file and do not run it.")
+	runCmd.Flags().BoolVar(&cacheClean, "cache-clean", false,
+		"Clean all cache files and recreate them from scratch")
+	runCmd.Flags().BoolVar(&reBuild, "rebuild", false,
+		"Clean the build directory first and then build")
+	rootCmd.AddCommand(runCmd)
 }
 
 //----------------------------------------------------------------------------
@@ -176,9 +191,9 @@ func makeCmakeFile(runner Runner) []string {
 		cmake = append(cmake, fmt.Sprintf("find_package(%q)\n", lib))
 	}
 
-  for _, file := range runner.ExtraFileNames {
-    runner.FileName = fmt.Sprintf("%s %s", runner.FileName, file)
-  }
+	for _, file := range runner.ExtraFileNames {
+		runner.FileName = fmt.Sprintf("%s %s", runner.FileName, file)
+	}
 
 	cmake = append(cmake, fmt.Sprintf("add_executable(%s %s)\n", runner.TargetName, runner.FileName))
 

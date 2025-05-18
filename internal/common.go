@@ -1,4 +1,4 @@
-package cmd
+package internal
 
 const easifem_banner string = `
     ███████╗ █████╗ ███████╗██╗███████╗███████╗███╗   ███╗
@@ -246,7 +246,7 @@ type Runner struct {
 	ExtraIncludePath     []string // These are additional paths passed to the compiler while building
 	ExtraLibs            []string // These libraries should be either the pull path or they should be installed where ld can find them
 	FileName             string   // name of main.F90
-	ExtraFileNames       []string   // extra file names for module etc.  
+	ExtraFileNames       []string // extra file names for module etc.
 	Flags                []string
 	IncludePath          []string
 	Language             string
@@ -256,9 +256,13 @@ type Runner struct {
 	TargetLibs           []string // These libraries are build using Cmake and Cmake can find theme
 	TargetName           string   // name of executable
 	IsExecute            bool     // If true then we do not run the executable
+	CacheClean           bool     // If true then we do not run the executable
+	ReBuild              bool     // If true then we do not run the executable
 }
 
 var noRun = false
+var cacheClean = false
+var reBuild = false
 
 const (
 	gfortranArgs        = `"-ffree-form" "-ffree-line-length-none" "-std=f2008" "-fimplicit-none"`
