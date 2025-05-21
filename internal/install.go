@@ -20,6 +20,13 @@ var installCmd = &cobra.Command{
 	Short: "This subcommand install one or more packages including dependencies.",
 	Long:  easifem_install_intro,
 	Args:  cobra.MinimumNArgs(1),
+	ValidArgsFunction: func(
+		cmd *cobra.Command,
+		args []string,
+		toComplete string,
+	) ([]string, cobra.ShellCompDirective) {
+		return (pkgGetAllNames()), (cobra.ShellCompDirectiveDefault)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println(easifem_banner)
 		pwd, err := os.Getwd()

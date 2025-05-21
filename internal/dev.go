@@ -24,6 +24,13 @@ var devCmd = &cobra.Command{
 	Short: "Develop easifem components",
 	Long:  easifem_dev_intro,
 	Args:  cobra.MinimumNArgs(1),
+	ValidArgsFunction: func(
+		cmd *cobra.Command,
+		args []string,
+		toComplete string,
+	) ([]string, cobra.ShellCompDirective) {
+		return (pkgGetAllNames()), (cobra.ShellCompDirectiveDefault)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println(easifem_banner)
 		pwd, err := os.Getwd()
