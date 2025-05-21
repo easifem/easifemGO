@@ -24,7 +24,9 @@ var cleanCmd = &cobra.Command{
 		args []string,
 		toComplete string,
 	) ([]string, cobra.ShellCompDirective) {
-		return (pkgGetAllNames()), (cobra.ShellCompDirectiveDefault)
+		candidates := pkgGetAllNames()
+		candidates = append(candidates, "extpkgs")
+		return candidates, cobra.ShellCompDirectiveDefault
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// fmt.Println(easifem_banner)
