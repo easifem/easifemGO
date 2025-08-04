@@ -275,6 +275,8 @@ func runExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
 		return
 	}
 
+	cmd.Stdin = os.Stdin
+
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		log.Println(err)
