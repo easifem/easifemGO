@@ -1,17 +1,15 @@
 package internal
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -237,7 +235,10 @@ func PkgCheckAndFix(pkg *Pkg) error {
 	}
 
 	if len(pkg.EnvVars) == 0 {
-		pkg.EnvVars = pkgGetEnvVarsFromViper(pkg.Name)
+		pkg.EnvVars, err = pkgGetEnvVarsFromViper(pkg.Name)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(pkg.LdLibraryPath) == 0 {
@@ -366,7 +367,7 @@ func pkgGetLdLibraryPathFromViper(pkg string) []string {
 //                                                            pkgGetEnvVars
 //----------------------------------------------------------------------------
 
-func pkgGetEnvVarsFromViper(pkg string) map[string]string {
+func pkgGetEnvVarsFromViper(pkg string) (map[string]string, error) {
 	ans := make(map[string]string)
 
 	strs := []string{}
@@ -378,11 +379,14 @@ func pkgGetEnvVarsFromViper(pkg string) map[string]string {
 	}
 
 	for _, s := range strs {
-		kv := strings.Split(s, "=")
-		ans[kv[0]] = kv[1]
+		key, value, ok := strings.Cut(s, "=")
+		if !ok || key == "" {
+			return nil, fmt.Errorf("package %s: invalid environment entry %q; expected KEY=value", pkg, s)
+		}
+		ans[key] = value
 	}
 
-	return ans
+	return ans, nil
 }
 
 //----------------------------------------------------------------------------
@@ -535,70 +539,7 @@ func pkgRunCmd(cargs []string, pkg, step string) error {
 	if !quiet {
 		log.Println("[log] :: pkgRunCmd.go | cmd name ➡️ ", cargs)
 	}
-	cmd := exec.Command(cargs[0], cargs[1:]...)
-
-	output_stdout := make(chan []byte)
-
-	var err error
-	go pkgExecuteCmd(cmd, output_stdout, err)
-
-	if !quiet {
-		for data := range output_stdout {
-			log.Println(string(data))
-		}
-	} else {
-		for range output_stdout {
-		}
-	}
-
-	return err
-}
-
-//----------------------------------------------------------------------------
-//                                                              pkgExecuteCmd
-//----------------------------------------------------------------------------
-
-func pkgExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
-	defer close(output_stdout)
-	var stdout io.ReadCloser
-
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error before executing devExecuteCmd(): %v", err))
-		return
-	}
-
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		log.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error getting stdout pipe: %v", err))
-		return
-	}
-
-	cmd.Stderr = cmd.Stdout
-	stdout_scanner := bufio.NewScanner(stdout)
-
-	done := make(chan struct{})
-
-	err = cmd.Start()
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
-		return
-	}
-
-	go func() {
-		for stdout_scanner.Scan() {
-			output_stdout <- stdout_scanner.Bytes()
-		}
-		done <- struct{}{}
-	}()
-
-	<-done
-
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error waiting for the script to complete: %v", err))
-	}
+	return runRunCmd(cargs, true)
 }
 
 //----------------------------------------------------------------------------
@@ -613,25 +554,14 @@ func pkgGetExtPkgs() []string {
 		return viper.GetStringSlice(key)
 	}
 
-	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
-		mypath := path.Join(configPath, easifem_pkg_config_dir)
-		entries, err2 := os.ReadDir(mypath)
-		if err2 != nil {
-			log.Fatalln("[err] :: pkg.go | pkgGetExtPkgs() ➡️ ", err2)
+	var names []string
+	for name, pkg := range easifem_pkgs {
+		if pkg.IsActive && pkg.IsExtPkg {
+			names = append(names, name)
 		}
-
-		ans := make([]string, len(entries))
-		const suffix = ".toml"
-
-		for i, e := range entries {
-			ans[i] = strings.TrimSuffix(e.Name(), suffix)
-		}
-
-		return ans
-
 	}
-
-	return []string{"sparsekit", "lapack95", "fftw", "superlu", "arpack", "tomlf", "lis"}
+	sort.Strings(names)
+	return names
 }
 
 //----------------------------------------------------------------------------

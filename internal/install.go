@@ -104,28 +104,18 @@ func installExtPkgs(pwd string) error {
 
 // install a package
 func installEasifem(pwd string) error {
+	return installEasifemWith(pwd, installPkgs)
+}
+
+func installEasifemWith(pwd string, install func(string, string) error) error {
 	var err error
 
-	for pkg, p := range easifem_pkgs {
-		switch name := pkg; name {
-		case "base":
-			if !quiet {
-				log.Println("[log] :: install.go | installEasifem() | pkg ➡️ ", pkg)
-			}
-
-			err = PkgInstall(p, pwd)
-			if err != nil {
-				return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
-			}
-		case "classes":
-			if !quiet {
-				log.Println("[log] :: install.go | installEasifem() | pkg ➡️ ", pkg)
-			}
-
-			err = PkgInstall(p, pwd)
-			if err != nil {
-				return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
-			}
+	for _, name := range []string{"base", "classes"} {
+		if _, ok := easifem_pkgs[name]; !ok {
+			continue
+		}
+		if err = install(name, pwd); err != nil {
+			return err
 		}
 	}
 

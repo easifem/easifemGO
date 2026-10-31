@@ -36,7 +36,7 @@ var runCmd = &cobra.Command{
 			files = files + " " + file
 		}
 
-		err = run(files, pwd)
+		err = runWithFlags(files, pwd, cmd.Flags().Changed)
 		if err != nil {
 			log.Fatalln("[err] :: run.go | run() ➡ ", err)
 		}
@@ -49,6 +49,10 @@ var runCmd = &cobra.Command{
 
 // run a single package
 func run(filename, pwd string) error {
+	return runWithFlags(filename, pwd, func(string) bool { return false })
+}
+
+func runWithFlags(filename, pwd string, changed func(string) bool) error {
 	var err error
 
 	runner := Runner{
@@ -69,8 +73,12 @@ func run(filename, pwd string) error {
 	tomlFile := path.Join(pwd, "runner.toml")
 
 	if _, err = os.Stat(tomlFile); !os.IsNotExist(err) {
-		_, _ = toml.DecodeFile(tomlFile, &runner)
+		if _, err = toml.DecodeFile(tomlFile, &runner); err != nil {
+			return fmt.Errorf("read runner.toml: %w", err)
+		}
 	}
+
+	applyRunFlags(&runner, changed)
 
 	runner.BuildDir = os.ExpandEnv(runner.BuildDir)
 	runner.SourceDir = os.ExpandEnv(runner.SourceDir)
@@ -136,7 +144,7 @@ func run(filename, pwd string) error {
 
 func init() {
 	runCmd.Flags().BoolVar(&noRun, "no-run", false,
-		"Only create the binary file and do not run it.")
+		"Only create the binary file and do not run it (overrides runner.toml).")
 	runCmd.Flags().BoolVar(&cacheClean, "cache-clean", false,
 		"Clean all cache files and recreate them from scratch")
 	runCmd.Flags().BoolVar(&reBuild, "rebuild", false,
@@ -247,4 +255,17 @@ func runRunCmd(cargs []string, qmode bool) error {
 	}
 	cmd.Stderr = cmd.Stdout
 	return cmd.Run()
+}
+
+// Explicit CLI flags override runner.toml, including explicit false values.
+func applyRunFlags(runner *Runner, changed func(string) bool) {
+	if changed("no-run") {
+		runner.IsExecute = noRun
+	}
+	if changed("cache-clean") {
+		runner.CacheClean = cacheClean
+	}
+	if changed("rebuild") {
+		runner.ReBuild = reBuild
+	}
 }

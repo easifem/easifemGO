@@ -18,9 +18,10 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "easifem",
-	Short: "A brief description of your application",
-	Long:  easifem_intro,
+	Use:     "easifem",
+	Version: Version,
+	Short:   "A brief description of your application",
+	Long:    easifem_intro,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(easifem_banner)
 		if err := cmd.Help(); err != nil {

@@ -5,12 +5,9 @@ Copyright © 2024 Vikas Sharma vickysharma0812@gmail.com
 package internal
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -129,107 +126,5 @@ func devRunCmd(cargs []string) error {
 	if !quiet {
 		log.Println("[log] :: pkgRunCmd.go | cmd name ➡️ ", cargs)
 	}
-	cmd := exec.Command(cargs[0], cargs[1:]...)
-
-	output_stdout := make(chan []byte)
-
-	var err error
-	go devExecuteCmd(cmd, output_stdout, err)
-
-	var line1, line2, line3, line4, line5 string
-
-	ii := 0
-
-	for data := range output_stdout {
-		ii = ii + 1
-
-		switch ii {
-		case 1:
-			line1 = string(data)
-			line2 = line1
-			line3 = line1
-			line4 = line1
-			line5 = line1
-		case 2:
-			line2 = string(data)
-			line3 = line2
-			line4 = line2
-			line5 = line2
-		case 3:
-			line3 = string(data)
-			line4 = line3
-			line5 = line3
-		case 4:
-			line4 = string(data)
-			line5 = line4
-		case 5:
-			line5 = string(data)
-		default:
-			line1 = line2
-			line2 = line3
-			line3 = line4
-			line4 = line5
-			line5 = string(data)
-		}
-
-		found_error := strings.Contains(line5, "Error:")
-
-		if found_error {
-			fmt.Println(line1)
-			fmt.Println(line2)
-			fmt.Println(line3)
-			fmt.Println(line4)
-			fmt.Println(line5)
-			log.Fatalf("[err] :: pkgRunCmd.go | Error found in the output")
-		}
-	}
-
-	return err
-}
-
-//----------------------------------------------------------------------------
-//                                                              pkgExecuteCmd
-//----------------------------------------------------------------------------
-
-func devExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
-	defer close(output_stdout)
-	var stdout io.ReadCloser
-
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error before executing devExecuteCmd(): %v", err))
-		return
-	}
-
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		log.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error getting stdout pipe: %v", err))
-		return
-	}
-
-	cmd.Stderr = cmd.Stdout
-	stdout_scanner := bufio.NewScanner(stdout)
-
-	done := make(chan struct{})
-
-	err = cmd.Start()
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
-		return
-	}
-
-	go func() {
-		for stdout_scanner.Scan() {
-			output_stdout <- stdout_scanner.Bytes()
-		}
-		done <- struct{}{}
-	}()
-
-	<-done
-
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error waiting for the script to complete: %v", err))
-	}
+	return runRunCmd(cargs, true)
 }

@@ -1,5 +1,8 @@
 # Running standalone Fortran examples
 
+[Documentation index](README.md) · [Command reference](commands.md) ·
+[Configuration](configuration.md) · [AI-agent guide](ai-guide.md)
+
 The `easifem test` command discovers standalone `*_test_*.F90` and
 `*_test_*.f90` programs in a directory. It builds and executes them one at a
 time and produces a separate log for each program.

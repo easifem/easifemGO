@@ -5,12 +5,8 @@ Copyright © 2024 Vikas Sharma vickysharma0812@gmail.com
 package internal
 
 import (
-	"bufio"
-	"fmt"
-	"io"
 	"log"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -173,58 +169,5 @@ func lintRunCmd(cargs []string, pkg, step string) error {
 	if !quiet {
 		log.Println("[log] :: pkgRunCmd.go | cmd name ➡️ ", cargs)
 	}
-	cmd := exec.Command(cargs[0], cargs[1:]...)
-
-	output_stdout := make(chan []byte)
-
-	var err error
-	go lintExecuteCmd(cmd, output_stdout, err)
-
-	for data := range output_stdout {
-		fmt.Println(string(data))
-	}
-
-	return err
-}
-
-//----------------------------------------------------------------------------
-//                                                              pkgExecuteCmd
-//----------------------------------------------------------------------------
-
-func lintExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
-	defer close(output_stdout)
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StderrPipe()
-	if err != nil {
-		log.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error getting stdout pipe: %v", err))
-		return
-	}
-
-	// cmd.Stderr = cmd.Stdout
-	stdout_scanner := bufio.NewScanner(stdout)
-
-	done := make(chan struct{})
-
-	err = cmd.Start()
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
-		return
-	}
-
-	go func() {
-		for stdout_scanner.Scan() {
-			output_stdout <- stdout_scanner.Bytes()
-		}
-		done <- struct{}{}
-	}()
-
-	<-done
-
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error waiting for the script to complete: %v", err))
-	}
+	return runRunCmd(cargs, false)
 }
