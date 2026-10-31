@@ -5,9 +5,7 @@ Copyright © 2024 Vikas Sharma vickysharma0812@gmail.com
 package internal
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -237,76 +235,16 @@ func writeCmakeFile(cmake []string, pwd string) error {
 //                                                                lintRunCmd
 //----------------------------------------------------------------------------
 
+// Forward output directly and return the actual subprocess error. Passing err
+// by value to a goroutine previously discarded build and execution failures.
 func runRunCmd(cargs []string, qmode bool) error {
 	cmd := exec.Command(cargs[0], cargs[1:]...)
-
-	output_stdout := make(chan []byte)
-
-	var err error
-	go runExecuteCmd(cmd, output_stdout, err)
-
-	if err != nil {
-		return err
-	}
-
-	if qmode {
-		for data := range output_stdout {
-			log.Println(string(data))
-		}
-	} else {
-		for data := range output_stdout {
-			fmt.Println(string(data))
-		}
-	}
-
-	return err
-}
-
-//----------------------------------------------------------------------------
-//                                                              pkgExecuteCmd
-//----------------------------------------------------------------------------
-
-func runExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
-	defer close(output_stdout)
-	var stdout io.ReadCloser
-
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
-		return
-	}
-
 	cmd.Stdin = os.Stdin
-
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		log.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error getting stdout pipe: %v", err))
-		return
+	if qmode {
+		cmd.Stdout = log.Writer()
+	} else {
+		cmd.Stdout = os.Stdout
 	}
-
 	cmd.Stderr = cmd.Stdout
-	stdout_scanner := bufio.NewScanner(stdout)
-
-	done := make(chan struct{})
-
-	err = cmd.Start()
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
-		return
-	}
-
-	go func() {
-		for stdout_scanner.Scan() {
-			output_stdout <- stdout_scanner.Bytes()
-		}
-		done <- struct{}{}
-	}()
-
-	<-done
-
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error waiting for the script to complete: %v", err))
-	}
+	return cmd.Run()
 }
