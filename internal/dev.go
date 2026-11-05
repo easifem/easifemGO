@@ -6,9 +6,9 @@ package internal
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -28,19 +28,22 @@ var devCmd = &cobra.Command{
 	) ([]string, cobra.ShellCompDirective) {
 		return (pkgGetAllNames()), (cobra.ShellCompDirectiveDefault)
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// fmt.Println(easifem_banner)
 		pwd, err := os.Getwd()
 		if err != nil {
-			log.Fatalln("[err] :: dev.go | os.Getwd() ➡️ ", err)
+			return err
 		}
 
 		pkg := args[0]
 
 		err = devPkgs(pkg, pwd)
 		if err != nil {
-			log.Fatalln("[err] :: dev.go | devPkgs() ➡ ", err)
+			return err
 		}
+		return nil
 	},
 }
 
@@ -50,12 +53,20 @@ var devCmd = &cobra.Command{
 
 // dev a single package
 func devPkgs(pkg, pwd string) error {
-	err := PkgDev(easifem_pkgs[pkg], pwd)
+	p, ok := easifem_pkgs[pkg]
+	if !ok {
+		return fmt.Errorf("unknown package %q", pkg)
+	}
+	started := time.Now()
+	err := PkgDev(p, pwd)
 	if err != nil {
 		return fmt.Errorf("devPkgs() | pkg=%s, err=%w", pkg, err)
 	}
 
-	return err
+	if p.IsActive && !quiet {
+		fmt.Fprintf(os.Stderr, "\n  ✓ %s built successfully · %s\n", pkg, time.Since(started).Round(100*time.Millisecond))
+	}
+	return nil
 }
 
 //----------------------------------------------------------------------------
@@ -79,16 +90,16 @@ func PkgDev(pkg *Pkg, pwd string) error {
 		os.Setenv(k, v)
 	}
 
-	DevCmake(pkg, pwd)
-
-	return nil
+	return DevCmake(pkg, pwd)
 }
 
 //----------------------------------------------------------------------------
 //                                                                 DevCMake
 //----------------------------------------------------------------------------
 
-func DevCmake(pkg *Pkg, pwd string) {
+func DevCmake(pkg *Pkg, pwd string) (err error) {
+	output := newLibraryOutput(pkg.Name)
+	defer func() { output.finish(err) }()
 	cargs := []string{
 		"cmake",
 		"-G", "Ninja",
@@ -99,23 +110,22 @@ func DevCmake(pkg *Pkg, pwd string) {
 		"-D BUILD_SHARED_LIBS:BOOL=ON",
 	}
 
-	var err error
-
 	if len(easifem_cache.INSTALL_DIRS) != 0 {
 		cargs = append(cargs, "-D CMAKE_PREFIX_PATH:PATH="+strings.Join(easifem_cache.INSTALL_DIRS, ";"))
 	}
 
 	cargs = append(cargs, pkg.BuildOptions...)
-	err = devRunCmd(cargs)
+	err = output.run(cargs, "Configure", pwd)
 	if err != nil {
-		log.Fatalf("[err] :: pkg.go | PkgCmake() | config step failed %v", err)
+		return err
 	}
 
 	cargs = []string{"cmake", "--build", pkg.BuildDir}
-	err = devRunCmd(cargs)
+	err = output.run(cargs, "Build", pwd)
 	if err != nil {
-		log.Fatalf("[err] :: pkg.go | PkgCmake() | build step failed %v", err)
+		return err
 	}
+	return nil
 }
 
 //----------------------------------------------------------------------------
@@ -123,8 +133,5 @@ func DevCmake(pkg *Pkg, pwd string) {
 //----------------------------------------------------------------------------
 
 func devRunCmd(cargs []string) error {
-	if !quiet {
-		log.Println("[log] :: pkgRunCmd.go | cmd name ➡️ ", cargs)
-	}
-	return runRunCmd(cargs, true)
+	return runBuildStage(cargs, "easifem", "Build", "")
 }

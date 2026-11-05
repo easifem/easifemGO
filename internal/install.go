@@ -6,8 +6,9 @@ package internal
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"sort"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -29,11 +30,13 @@ var installCmd = &cobra.Command{
 		candidates = append(candidates, "easifem", "extpkgs")
 		return candidates, cobra.ShellCompDirectiveDefault
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	SilenceUsage:  true,
+	SilenceErrors: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
 		// fmt.Println(easifem_banner)
 		pwd, err := os.Getwd()
 		if err != nil {
-			log.Fatalln("[err] :: install.go | os.Getwd() ➡️ ", err)
+			return err
 		}
 
 		for _, pkg := range args {
@@ -47,9 +50,10 @@ var installCmd = &cobra.Command{
 				err = installPkgs(pkg, pwd)
 			}
 			if err != nil {
-				log.Fatalln("[err] :: install.go | installPkgs() ➡ ", err)
+				return err
 			}
 		}
+		return nil
 	},
 }
 
@@ -63,15 +67,19 @@ func installPkgs(pkg, pwd string) error {
 
 	// check if pkg is in the list of easifem_pkgs
 	if _, ok := easifem_pkgs[pkg]; !ok {
-		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
+		return fmt.Errorf("unknown package %q", pkg)
 	}
 
+	started := time.Now()
 	err = PkgInstall(easifem_pkgs[pkg], pwd)
 	if err != nil {
 		return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
 	}
 
-	return err
+	if easifem_pkgs[pkg].IsActive && !quiet {
+		fmt.Fprintf(os.Stderr, "\n  ✓ %s installed successfully · %s\n    %s\n", pkg, time.Since(started).Round(100*time.Millisecond), easifem_pkgs[pkg].InstallDir)
+	}
+	return nil
 }
 
 //----------------------------------------------------------------------------
@@ -80,22 +88,19 @@ func installPkgs(pkg, pwd string) error {
 
 // install a package
 func installExtPkgs(pwd string) error {
-	var err error
-
-	for pkg, p := range easifem_pkgs {
-		if p.IsExtPkg {
-			if !quiet {
-				log.Println("[log] :: install.go | installExtPkgs() | pkg ➡️ ", pkg)
-			}
-
-			err = PkgInstall(p, pwd)
-			if err != nil {
-				return fmt.Errorf("installPkgs() | pkg=%s, err=%w", pkg, err)
-			}
+	var names []string
+	for name, pkg := range easifem_pkgs {
+		if pkg.IsExtPkg {
+			names = append(names, name)
 		}
 	}
-
-	return err
+	sort.Strings(names)
+	for _, name := range names {
+		if err := installPkgs(name, pwd); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 //----------------------------------------------------------------------------

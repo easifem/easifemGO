@@ -11,11 +11,9 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"sync"
-	"time"
+	"syscall"
 
 	"github.com/BurntSushi/toml"
-	"github.com/briandowns/spinner"
 	getter "github.com/hashicorp/go-getter/v2"
 	"github.com/spf13/viper"
 )
@@ -24,8 +22,16 @@ import (
 //                                                                    PkgMake
 //----------------------------------------------------------------------------
 
-func PkgMake(pkg *Pkg, pwd string) {
-	change_dir(pkg.BuildDir)
+func PkgMake(pkg *Pkg, pwd string) (err error) {
+	output := newLibraryOutput(pkg.Name)
+	defer func() { output.finish(err) }()
+	return pkgMakeWithOutput(pkg, pwd, output)
+}
+
+func pkgMakeWithOutput(pkg *Pkg, pwd string, output *libraryOutput) error {
+	if err := os.MkdirAll(pkg.BuildDir, 0777); err != nil {
+		return err
+	}
 
 	cargs := []string{
 		path.Join(pkg.SourceDir, "configure"),
@@ -35,31 +41,37 @@ func PkgMake(pkg *Pkg, pwd string) {
 	var err error
 
 	cargs = append(cargs, pkg.BuildOptions...)
-	err = pkgRunCmd(cargs, pkg.Name, "[config]")
+	err = output.run(cargs, "Configure", pkg.BuildDir)
 	if err != nil {
-		log.Fatalf("[err] :: PkgMake() | config step failed %v", err)
+		return err
 	}
 
 	cargs = []string{"make"}
-	err = pkgRunCmd(cargs, pkg.Name, "[build]")
+	err = output.run(cargs, "Build", pkg.BuildDir)
 	if err != nil {
-		log.Fatalf("[err] :: PkgMake() | build step failed %v", err)
+		return err
 	}
 
 	cargs = []string{"make", "install"}
-	err = pkgRunCmd(cargs, pkg.Name, "[install]")
+	err = output.run(cargs, "Install", pkg.BuildDir)
 	if err != nil {
-		log.Fatalf("[err] :: PkgMake() | install step failed %v", err)
+		return err
 	}
 
-	change_dir(pwd)
+	return nil
 }
 
 //----------------------------------------------------------------------------
 //                                                              PkgCMake
 //----------------------------------------------------------------------------
 
-func PkgCmake(pkg *Pkg, pwd string) {
+func PkgCmake(pkg *Pkg, pwd string) (err error) {
+	output := newLibraryOutput(pkg.Name)
+	defer func() { output.finish(err) }()
+	return pkgCmakeWithOutput(pkg, pwd, output)
+}
+
+func pkgCmakeWithOutput(pkg *Pkg, pwd string, output *libraryOutput) error {
 	cargs := []string{
 		"cmake",
 		"-G", "Ninja",
@@ -78,22 +90,23 @@ func PkgCmake(pkg *Pkg, pwd string) {
 	}
 
 	cargs = append(cargs, pkg.BuildOptions...)
-	err = pkgRunCmd(cargs, pkg.Name, "[config]")
+	err = output.run(cargs, "Configure", pwd)
 	if err != nil {
-		log.Fatalf("[err] :: pkg.go | PkgCmake() | config step failed %v", err)
+		return err
 	}
 
 	cargs = []string{"cmake", "--build", pkg.BuildDir}
-	err = pkgRunCmd(cargs, pkg.Name, "[build]")
+	err = output.run(cargs, "Build", pwd)
 	if err != nil {
-		log.Fatalf("[err] :: pkg.go | PkgCmake() | build step failed %v", err)
+		return err
 	}
 
 	cargs = []string{"cmake", "--install", pkg.BuildDir}
-	err = pkgRunCmd(cargs, pkg.Name, "[install]")
+	err = output.run(cargs, "Install", pwd)
 	if err != nil {
-		log.Fatalf("[err] :: pkg.go | PkgCmake() | install step failed %v", err)
+		return err
 	}
+	return nil
 }
 
 //----------------------------------------------------------------------------
@@ -108,29 +121,36 @@ func PkgMason(pkg *Pkg, pwd string) {
 //                                                                 PkgInstall
 //----------------------------------------------------------------------------
 
-func PkgInstall(pkg *Pkg, pwd string) error {
+func PkgInstall(pkg *Pkg, pwd string) (err error) {
 	if !pkg.IsActive {
 		return nil
 	}
 
+	output := newLibraryOutput(pkg.Name)
+	defer func() { output.finish(err) }()
 	if !noDownload {
-		pkgDownloadPkg(pkg.Url, pkg.SourceDir, pwd)
+		if err := pkgDownloadPkgWithOutput(pkg.Url, pkg.SourceDir, pwd, output); err != nil {
+			return err
+		}
 	}
 
-	pkgMakeDir(pkg.InstallDir)
+	if err := makePackageDirs(pkg.InstallDir); err != nil {
+		return err
+	}
 
 	for k, v := range pkg.EnvVars {
-		if !quiet {
-			log.Printf("[log] :: install.go | setting env %s=%s", k, v)
-		}
 		os.Setenv(k, v)
 	}
 
 	switch pkg.BuildSystem {
 	case "make":
-		PkgMake(pkg, pwd)
+		if err := pkgMakeWithOutput(pkg, pwd, output); err != nil {
+			return err
+		}
 	case "cmake":
-		PkgCmake(pkg, pwd)
+		if err := pkgCmakeWithOutput(pkg, pwd, output); err != nil {
+			return err
+		}
 	case "mason":
 		PkgMason(pkg, pwd)
 	default:
@@ -149,7 +169,7 @@ func PkgMakeFromToml(pkg string) (*Pkg, error) {
 	var err error
 	tomlFile := path.Join(configPath, easifem_pkg_config_dir, pkg+".toml")
 
-	if !quiet {
+	if verbose && !quiet {
 		log.Printf("[log] :: pkg.go | PkgMakeFromToml() pkg=%s, file=%s",
 			pkg, tomlFile)
 	}
@@ -273,61 +293,39 @@ func PkgMakeFromViper(name string) (*Pkg, error) {
 //----------------------------------------------------------------------------
 
 // Download the package
-func pkgDownloadPkg(url, source_dir, pwd string) {
-	ctx, cancel := context.WithCancel(context.Background())
-	// Build the client
-	req := &getter.Request{
-		Src:             url,
-		Dst:             source_dir,
-		Pwd:             pwd,
-		GetMode:         getter.ModeAny,
-		Copy:            true,
-		DisableSymlinks: true,
+func pkgDownloadPkg(url, source_dir, pwd string) error {
+	return pkgDownloadPkgWithOutput(url, source_dir, pwd, nil)
+}
+
+func pkgDownloadPkgWithOutput(url, source_dir, pwd string, operation *libraryOutput) (err error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	var display *stageOutput
+	if operation != nil {
+		display = operation.begin("Download")
 	}
-	req.ProgressListener = defaultProgressBar
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-
-	client := getter.DefaultClient
-	client.DisableSymlinks = true
-
-	getters := getter.Getters
-	client.Getters = getters
-
-	errChan := make(chan error, 2)
-	go func() {
-		defer wg.Done()
-		defer cancel()
-		res, err := client.Get(ctx, req)
-		if err != nil {
-			errChan <- err
-			log.Fatalf("[err] :: pkgDownloadPkg.go: %s", res.Dst)
-			return
-		}
-		if !quiet {
-			log.Printf("[log] :: pkgDownloadPkg.go | source:  %s", req.Src)
-			log.Printf("[log] :: pkgDownloadPkg.go | request destination:  %s", req.Dst)
+	shared := display != nil
+	if !shared {
+		display = newStageOutput(os.Stderr, "Download", animatedOutput(), quiet)
+	}
+	defer func() {
+		if shared {
+			operation.complete("Download", err)
+		} else {
+			display.finish(err)
 		}
 	}()
-
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
-
-	select {
-	case sig := <-c:
-		signal.Reset(os.Interrupt)
-		cancel()
-		wg.Wait()
-		if !quiet {
-			log.Printf("[log] :: pkgDownloadPkg.go | signal: %v", sig)
-		}
-
-	case <-ctx.Done():
-		wg.Wait()
-	case err := <-errChan:
-		wg.Wait()
-		log.Fatalf("[err] :: pkgDownloadPkg.go | Error downloading: %s", err)
+	req := &getter.Request{
+		Src: url, Dst: source_dir, Pwd: pwd,
+		GetMode: getter.ModeAny, Copy: true, DisableSymlinks: true,
+		ProgressListener: &ProgressBar{stage: display},
 	}
+	client := *getter.DefaultClient
+	client.DisableSymlinks = true
+	if _, err = client.Get(ctx, req); err != nil {
+		return fmt.Errorf("download %s: %w", source_dir, err)
+	}
+	return nil
 }
 
 //----------------------------------------------------------------------------
@@ -336,13 +334,21 @@ func pkgDownloadPkg(url, source_dir, pwd string) {
 
 // make directory for installing and building pkg
 func pkgMakeDir(dir string) {
+	if err := makePackageDirs(dir); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// Library operations return setup failures so the shared dashboard can restore
+// the cursor through its deferred cleanup.
+func makePackageDirs(dir string) error {
 	for _, opt := range []string{"lib", "include", "bin", "share"} {
 		astr := path.Join(dir, opt)
 		if err := os.MkdirAll(astr, 0777); err != nil {
-			log.Fatalln("[err] :: make_dir.go | cannot create dir ➡️  ", astr,
-				" with permission 0777")
+			return fmt.Errorf("create directory %s: %w", astr, err)
 		}
 	}
+	return nil
 }
 
 //----------------------------------------------------------------------------
@@ -528,18 +534,7 @@ func cmakeOnOff(a bool) string {
 //----------------------------------------------------------------------------
 
 func pkgRunCmd(cargs []string, pkg, step string) error {
-	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond)
-	s.Suffix = " installing " + pkg + " cmd: " + cargs[0] + " " + step
-	_ = s.Color("red")
-	if quiet {
-		s.Start()
-		defer s.Stop()
-	}
-
-	if !quiet {
-		log.Println("[log] :: pkgRunCmd.go | cmd name ➡️ ", cargs)
-	}
-	return runRunCmd(cargs, true)
+	return runBuildStage(cargs, pkg, strings.Trim(step, "[]"), "")
 }
 
 //----------------------------------------------------------------------------
@@ -625,7 +620,7 @@ func readCache() error {
 	var err error
 	cacheFile := path.Join(configPath, easifem_cache_file)
 
-	if !quiet {
+	if verbose && !quiet {
 		log.Printf("[log] :: pkg.go | readCache() | cacheFile=%s➡️ ", cacheFile)
 	}
 
@@ -664,7 +659,7 @@ func writeCache() error {
 		return fmt.Errorf("writeCache() | error = %w", err)
 	}
 
-	if !quiet {
+	if verbose && !quiet {
 		log.Printf("[log] :: pkg.go | writeCache() | cacheFile=%s➡️ ", cacheFile)
 	}
 

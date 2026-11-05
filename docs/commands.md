@@ -11,7 +11,8 @@ filesystem read-only operation.
 |---|---|
 | `--config`, `-c` | Select a main configuration file explicitly. |
 | `--env` | Select the environment section; the default flag value is `env`. |
-| `--quiet`, `-q` | Suppress the CLI logger. Test result summaries still print. |
+| `--quiet`, `-q` | Suppress the CLI logger and library progress. Failed stages still show recent diagnostics and a log path. Test summaries still print. |
+| `--verbose` | Show configuration details and library stage commands, working directories, full output, and log paths; disable animation. |
 | `--no-download` | Skip package download in the installation path. Does not skip building or installation. |
 
 Examples:
@@ -82,6 +83,58 @@ corresponding `runner.toml` values, including explicit false flags. Malformed
 
 Use `--cache-clean`/`--rebuild` only when clearing the example artifacts is
 intended; they are not library-clean commands.
+
+## Library progress (`dev` and `install`)
+
+Interactive terminals show one persistent dashboard per package operation.
+Download, Configure, Build, and Install update the same panels in place.
+Completed stages are listed with checkmarks; counters reset for the new stage,
+recent compiler output is retained, and elapsed time covers the whole operation. At 80 columns or wider, progress, elapsed time, and the current
+task appear in a rounded box on the left; recent compiler output appears in
+a matching box on the right. Narrow terminals use a stacked bordered card.
+Borders remain static; updates overwrite only changed text in a single buffered
+write. The cursor stays hidden across stage transitions and is restored only when the
+package operation completes or fails. Compiler messages update within this area
+without scrolling progress down; long lines are clipped to fit. Ninja's default
+`[completed/total]` output
+updates a solid-block progress bar and the current task description. Completed
+blocks and the percentage use bold stage-colored text; the remaining track is
+dimmed. Monochrome output keeps the same block shape. This percentage
+counts tasks, not elapsed time; custom `NINJA_STATUS` formats may leave the
+spinner active. Other build tools use the spinner without a made-up percentage.
+
+Downloads show bytes, average transfer speed, and estimated time remaining when
+the protocol reports a content length. Unknown-length transfers and Git clones
+use a spinner. No download stage is shown with `--no-download`.
+
+The dashboard retains the last 20 compiler output lines and displays the most
+recent lines that fit. At package completion, the boxes remain in scrollback with
+a success or failure marker; diagnostics are not printed a second time.
+Diagnostics have no logging prefixes. Compiler terminal controls are removed
+from the dashboard; raw logs preserve the original output. Each command stage
+retains its raw output and command in a unique log file under the
+system temporary directory. Failures stop the operation and print the full log
+path. Animated operations print their command-stage log paths together after
+the dashboard closes. `--verbose` prints log paths after every successful stage. Successful
+operations print a final elapsed time and installations show their destination.
+
+Animation is disabled with `--quiet`, `--verbose`, a nonempty `CI` environment
+variable, `TERM=dumb`, or when stderr is redirected. Redirected/CI output uses
+ordinary lines. Interactive headers and borders use stage colors: cyan for
+Download, blue for Configure, magenta for Build, and amber for Install. Header text
+turns green on completion and red on failure. Backgrounds keep the terminal
+default. Colors are disabled
+when `NO_COLOR` is present (even if empty); monochrome animation still works.
+Styling is applied only to the display and never added to raw command logs.
+Quiet mode suppresses successful output; failed stages print up to the last 20
+output lines plus the error and log path. Progress and diagnostics use stderr.
+
+```sh
+easifem dev classes
+easifem install classes --no-download
+easifem --verbose dev classes
+easifem --quiet install classes --no-download
+```
 
 ## `easifem dev pkgname`
 

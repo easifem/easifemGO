@@ -35,11 +35,13 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		log.Fatalln("[err] :: root.go | Execute() ➡️ ", err)
+		fmt.Fprintln(os.Stderr, "easifem:", err)
+		os.Exit(1)
 	}
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Show configuration details, commands, and full build output (disable animation)")
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "",
