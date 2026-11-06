@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -533,5 +535,84 @@ func TestBarIncrementKeepsDiffRendering(t *testing.T) {
 	}
 	if !strings.Contains(screen.String(), "\x1b[1;95m█") {
 		t.Fatal("increment lost its bold stage color")
+	}
+}
+
+func TestLibraryLogLocationAndStageRetention(t *testing.T) {
+	buildDir := filepath.Join(t.TempDir(), "package-build")
+	operation := newLibraryOutput("classes", buildDir, "build")
+	operation.animate = false
+	for _, text := range []string{"configure output\n", "build output\n"} {
+		file, err := operation.openLog()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if file.Name() != filepath.Join(buildDir, "easifem-build-log.txt") {
+			t.Fatal("unexpected log location", file.Name())
+		}
+		if _, err := file.WriteString(text); err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(buildDir, "easifem-build-log.txt"))
+	if err != nil || string(data) != "configure output\nbuild output\n" {
+		t.Fatalf("stage output was lost: %q %v", data, err)
+	}
+	if len(operation.logs) != 1 {
+		t.Fatal("same log listed more than once", operation.logs)
+	}
+}
+
+func TestNewLibraryInvocationReplacesOnlyItsOwnLog(t *testing.T) {
+	buildDir := t.TempDir()
+	for _, mode := range []string{"build", "install"} {
+		operation := newLibraryOutput("classes", buildDir, mode)
+		file, err := operation.openLog()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := file.WriteString("old " + mode + " output\n"); err != nil {
+			t.Fatal(err)
+		}
+		if err := file.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	operation := newLibraryOutput("classes", buildDir, "build")
+	file, err := operation.openLog()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteString("latest build output\n"); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for name, want := range map[string]string{"easifem-build-log.txt": "latest build output\n", "easifem-install-log.txt": "old install output\n"} {
+		data, err := os.ReadFile(filepath.Join(buildDir, name))
+		if err != nil || string(data) != want {
+			t.Fatalf("unexpected %s contents: %q %v", name, data, err)
+		}
+	}
+}
+
+func TestLibraryLogSetupErrors(t *testing.T) {
+	blocker := filepath.Join(t.TempDir(), "not-a-directory")
+	if err := os.WriteFile(blocker, []byte("keep"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, dir := range []string{"", blocker, filepath.Join(blocker, "build")} {
+		operation := newLibraryOutput("classes", dir, "install")
+		if file, err := operation.openLog(); err == nil {
+			file.Close()
+			t.Fatalf("invalid log directory accepted: %q", dir)
+		}
+		if operation.logStarted {
+			t.Fatal("failed log setup was marked started")
+		}
 	}
 }

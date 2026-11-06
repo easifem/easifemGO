@@ -98,7 +98,7 @@ func PkgDev(pkg *Pkg, pwd string) error {
 //----------------------------------------------------------------------------
 
 func DevCmake(pkg *Pkg, pwd string) (err error) {
-	output := newLibraryOutput(pkg.Name)
+	output := newLibraryOutput(pkg.Name, pkg.BuildDir, "build")
 	defer func() { output.finish(err) }()
 	cargs := []string{
 		"cmake",

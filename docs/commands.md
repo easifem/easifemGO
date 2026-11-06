@@ -112,11 +112,26 @@ recent lines that fit. At package completion, the boxes remain in scrollback wit
 a success or failure marker; diagnostics are not printed a second time.
 Diagnostics have no logging prefixes. Compiler terminal controls are removed
 from the dashboard; raw logs preserve the original output. Each command stage
-retains its raw output and command in a unique log file under the
-system temporary directory. Failures stop the operation and print the full log
-path. Animated operations print their command-stage log paths together after
-the dashboard closes. `--verbose` prints log paths after every successful stage. Successful
-operations print a final elapsed time and installations show their destination.
+records raw output, the command, working directory, timestamp, and stage name
+in the package's configured build directory:
+
+| Operation | Log file |
+|---|---|
+| `easifem dev pkgname` | `<BuildDir>/easifem-build-log.txt` |
+| `easifem install pkgname` | `<BuildDir>/easifem-install-log.txt` |
+
+Configure and build stages from an installation are included in the install
+log. The first command stage replaces that operation's previous log; subsequent
+stages append to it, preserving configuration diagnostics when a build fails.
+The build and install logs are independent. Missing build directories are created
+before opening a log; log creation/write errors fail the operation. These logs
+follow the configured build directory, including when it is under `/tmp`, and
+are removed with it by `easifem clean`.
+
+Failures stop the operation and print the full log path. Animated operations
+print their log path after the dashboard closes; `--verbose` prints it after
+each successful stage. Successful operations print a final elapsed time and
+installations show their destination.
 
 Animation is disabled with `--quiet`, `--verbose`, a nonempty `CI` environment
 variable, `TERM=dumb`, or when stderr is redirected. Redirected/CI output uses

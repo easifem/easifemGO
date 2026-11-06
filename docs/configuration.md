@@ -114,6 +114,15 @@ but the current writer creates only the `.fish` file.
 normal root initialization. Do not describe it as a completely read-only CLI
 invocation.
 
+## Library build and install logs
+
+Library command logs are kept beside package build artifacts, using each
+plugin's `buildDir` (or its configured fallback): `easifem-build-log.txt` for
+`dev` and `easifem-install-log.txt` for `install`. Each invocation replaces its
+log when the first command stage starts, then appends all subsequent stages.
+These paths do not use the main configuration directory or the installed library
+prefix. See [library progress](commands.md#library-progress-dev-and-install).
+
 ## `runner.toml`
 
 Place this file in each examples/application directory. For classes examples:

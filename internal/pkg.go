@@ -23,7 +23,7 @@ import (
 //----------------------------------------------------------------------------
 
 func PkgMake(pkg *Pkg, pwd string) (err error) {
-	output := newLibraryOutput(pkg.Name)
+	output := newLibraryOutput(pkg.Name, pkg.BuildDir, "install")
 	defer func() { output.finish(err) }()
 	return pkgMakeWithOutput(pkg, pwd, output)
 }
@@ -66,7 +66,7 @@ func pkgMakeWithOutput(pkg *Pkg, pwd string, output *libraryOutput) error {
 //----------------------------------------------------------------------------
 
 func PkgCmake(pkg *Pkg, pwd string) (err error) {
-	output := newLibraryOutput(pkg.Name)
+	output := newLibraryOutput(pkg.Name, pkg.BuildDir, "install")
 	defer func() { output.finish(err) }()
 	return pkgCmakeWithOutput(pkg, pwd, output)
 }
@@ -126,7 +126,7 @@ func PkgInstall(pkg *Pkg, pwd string) (err error) {
 		return nil
 	}
 
-	output := newLibraryOutput(pkg.Name)
+	output := newLibraryOutput(pkg.Name, pkg.BuildDir, "install")
 	defer func() { output.finish(err) }()
 	if !noDownload {
 		if err := pkgDownloadPkgWithOutput(pkg.Url, pkg.SourceDir, pwd, output); err != nil {

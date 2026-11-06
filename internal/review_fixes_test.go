@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/spf13/viper"
@@ -12,15 +13,28 @@ import (
 
 func TestLegacyCommandsPropagateFailures(t *testing.T) {
 	t.Setenv("EASIFEM_TEST_HELPER_EXIT", "1")
-	for name, run := range map[string]func([]string) error{
-		"install": func(args []string) error { return pkgRunCmd(args, "fixture", "build") },
-		"dev":     devRunCmd,
-		"lint":    func(args []string) error { return lintRunCmd(args, "fixture", "build") },
-	} {
+	for _, name := range []string{"install", "dev", "lint"} {
 		t.Run(name, func(t *testing.T) {
+			operation := newLibraryOutput("fixture", filepath.Join(t.TempDir(), "build"), name)
+			operation.animate = false
 			for _, args := range [][]string{{os.Args[0], "-test.run=^TestRunCommandExitHelper$"}, {filepath.Join(t.TempDir(), "missing-command")}} {
-				if err := run(args); err == nil {
+				var err error
+				if name == "lint" {
+					err = lintRunCmd(args, "fixture", "build")
+				} else {
+					err = operation.run(args, "Build", "")
+				}
+				if err == nil {
 					t.Fatal("subprocess failure was discarded")
+				}
+				if name != "lint" {
+					if len(operation.logs) != 1 || !strings.Contains(err.Error(), operation.logs[0]) {
+						t.Fatal("failure did not identify its persistent log", err)
+					}
+					data, readErr := os.ReadFile(operation.logs[0])
+					if readErr != nil || !strings.Contains(string(data), "=== Build ·") {
+						t.Fatalf("failure log unavailable: %q %v", data, readErr)
+					}
 				}
 			}
 		})

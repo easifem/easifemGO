@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -501,14 +502,48 @@ func (s *stageOutput) finish(err error) {
 // libraryOutput owns one dashboard across every stage of a package operation.
 // It is passed explicitly so nested CMake/make/download paths share the display.
 type libraryOutput struct {
-	pkg     string
-	animate bool
-	display *stageOutput
-	logs    []string
+	pkg        string
+	animate    bool
+	display    *stageOutput
+	logs       []string
+	logDir     string
+	logName    string
+	logStarted bool
 }
 
-func newLibraryOutput(pkg string) *libraryOutput {
-	return &libraryOutput{pkg: pkg, animate: animatedOutput()}
+func newLibraryOutput(pkg, buildDir, operation string) *libraryOutput {
+	name := "easifem-build-log.txt"
+	if operation == "install" {
+		name = "easifem-install-log.txt"
+	}
+	return &libraryOutput{pkg: pkg, animate: animatedOutput(), logDir: buildDir, logName: name}
+}
+
+// Truncate once per operation; subsequent command stages append to the same log.
+func (o *libraryOutput) openLog() (*os.File, error) {
+	if strings.TrimSpace(o.logDir) == "" {
+		return nil, fmt.Errorf("package %s: build directory is empty", o.pkg)
+	}
+	dir, err := filepath.Abs(os.ExpandEnv(o.logDir))
+	if err != nil {
+		return nil, err
+	}
+	if err = os.MkdirAll(dir, 0755); err != nil {
+		return nil, fmt.Errorf("create log directory %s: %w", dir, err)
+	}
+	flags := os.O_CREATE | os.O_WRONLY | os.O_TRUNC
+	if o.logStarted {
+		flags = os.O_CREATE | os.O_WRONLY | os.O_APPEND
+	}
+	file, err := os.OpenFile(filepath.Join(dir, o.logName), flags, 0600)
+	if err != nil {
+		return nil, err
+	}
+	o.logStarted = true
+	if len(o.logs) == 0 {
+		o.logs = append(o.logs, file.Name())
+	}
+	return file, nil
 }
 
 func (o *libraryOutput) begin(stage string) *stageOutput {
@@ -558,7 +593,7 @@ func (o *libraryOutput) finish(err error) {
 	}
 	o.display.finish(err)
 	if len(o.logs) > 0 {
-		fmt.Fprintln(os.Stderr, "  Stage logs:")
+		fmt.Fprintln(os.Stderr, "  Log:")
 		for _, path := range o.logs {
 			fmt.Fprintln(os.Stderr, "   ", path)
 		}
@@ -581,7 +616,15 @@ func runBuildStageWithOutput(args []string, pkg, stage, dir string, operation *l
 	if operation != nil {
 		display = operation.begin(stage)
 	}
-	logFile, err := os.CreateTemp("", "easifem-"+strings.ToLower(stage)+"-*.log")
+	logOwner := operation
+	if logOwner == nil {
+		logDir := dir
+		if logDir == "" {
+			logDir = "."
+		}
+		logOwner = newLibraryOutput(pkg, logDir, strings.ToLower(stage))
+	}
+	logFile, err := logOwner.openLog()
 	if err != nil {
 		return fmt.Errorf("%s: create %s log: %w", pkg, stage, err)
 	}
@@ -595,7 +638,7 @@ func runBuildStageWithOutput(args []string, pkg, stage, dir string, operation *l
 	if verbose && !quiet {
 		fmt.Fprintf(os.Stderr, "  command: %q\n  directory: %s\n", args, dir)
 	}
-	_, logErr := fmt.Fprintf(logFile, "command: %q\nworking directory: %s\n", args, dir)
+	_, logErr := fmt.Fprintf(logFile, "\n=== %s · %s ===\ncommand: %q\nworking directory: %s\n", stage, time.Now().Format(time.RFC3339), args, dir)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if logErr == nil {
@@ -608,7 +651,6 @@ func runBuildStageWithOutput(args []string, pkg, stage, dir string, operation *l
 	}
 	if shared {
 		operation.complete(stage, err)
-		operation.logs = append(operation.logs, logFile.Name())
 	} else {
 		display.finish(err)
 	}
