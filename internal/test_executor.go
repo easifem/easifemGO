@@ -95,40 +95,18 @@ func (e exampleTestExecutor) Build(ctx context.Context, test testrunner.Test, ou
 		runner.ExtraLibs[i] = library
 	}
 	cmake := makeCmakeFile(runner)
-	includes := append([]string{test.Dir, sourceBase}, runner.IncludePath...)
-	includes = append(includes, runner.ExtraIncludePath...)
-	for _, include := range includes {
-		resolved, err := expandTestPath(sourceBase, include)
-		if err != nil {
-			return program, err
-		}
-		cmake = append(cmake, fmt.Sprintf("target_include_directories(%s PRIVATE %s)\n", runner.TargetName, quoteTestCMake(resolved)))
+	settings, err := runnerTargetSettings(runner, sourceBase, []string{test.Dir, sourceBase})
+	if err != nil {
+		return program, err
 	}
-	for _, flag := range runner.Flags {
-		cmake = append(cmake, fmt.Sprintf("target_compile_options(%s PRIVATE %s)\n", runner.TargetName, quoteTestCMake(flag)))
-	}
-	for _, directory := range runner.LibraryPath {
-		resolved, err := expandTestPath(sourceBase, directory)
-		if err != nil {
-			return program, err
-		}
-		cmake = append(cmake, fmt.Sprintf("target_link_directories(%s PRIVATE %s)\n", runner.TargetName, quoteTestCMake(resolved)))
-	}
+	cmake = append(cmake, settings...)
 	if err := os.WriteFile(filepath.Join(generated, "CMakeLists.txt"), []byte(strings.Join(cmake, "")), 0600); err != nil {
 		return program, err
 	}
 	args := []string{"cmake", "-G", "Ninja", "-S", generated, "-B", buildDir, "-DCMAKE_BUILD_TYPE:STRING=" + runner.BuildType}
-	compiler := os.ExpandEnv(runner.Compiler)
-	if runner.CompilerPath != "" {
-		compilerPath, err := expandTestPath(sourceBase, runner.CompilerPath)
-		if err != nil {
-			return program, err
-		}
-		if info, err := os.Stat(compilerPath); err == nil && info.IsDir() {
-			compiler = filepath.Join(compilerPath, compiler)
-		} else {
-			compiler = compilerPath
-		}
+	compiler, err := fortranCompiler(runner.Compiler, runner.CompilerPath, sourceBase)
+	if err != nil {
+		return program, err
 	}
 	if compiler != "" {
 		args = append(args, "-DCMAKE_Fortran_COMPILER:FILEPATH="+compiler)
