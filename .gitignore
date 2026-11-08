@@ -3,3 +3,4 @@ build
 __*
 config.log
 .DS_Store
+.rumdl_cache

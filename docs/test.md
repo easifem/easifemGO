@@ -1,7 +1,39 @@
-# Running standalone Fortran examples
+# Command: test
 
-[Documentation index](README.md) · [Command reference](commands.md) ·
-[Configuration](configuration.md) · [AI-agent guide](ai-guide.md)
+## Summary
+
+```sh
+easifem test [directory]
+```
+
+Discover, build and run standalone `*_test_*.F90`/`.f90` programs. The directory
+defaults to the current directory. Tests run sequentially with isolated builds,
+while runtime fixture paths are resolved from each example's directory.
+
+```sh
+easifem test ./examples --list
+easifem test ./examples --filter 'Get*' --filter 'DG*'
+easifem test ./src/modules --recursive --timeout 5m --json results.json
+```
+
+| Flag | Default | Meaning |
+|---|---|---|
+| `--recursive`, `-r` | false | Search subdirectories, excluding hidden/build directories. |
+| `--filter` | all matching programs | Repeatable filename/relative-path glob; alternatives are ORed. |
+| `--list` | false | Print selection without compiling or executing examples. |
+| `--logdir` | system temporary directory | Parent of a unique per-invocation log directory. |
+| `--json` | disabled | Write a version-1 report to a `.json` filename. |
+| `--timeout` | `0` | Per-test build plus execution deadline; `0` disables it. |
+| `--fail-fast` | false | Stop after the first unsuccessful result. |
+| `--rebuild` | false | Clean only the test's isolated build before compiling. |
+| `--allow-no-check` | false | Accept `NOCHECK` results without relabeling them as passes. |
+
+- Empty selections and invalid filters are errors.
+- `--list` cannot be combined with `--json`.
+- The command returns nonzero for failures, unrun selected tests, interruption, or infrastructure/reporting errors.
+- Explicit skips are accepted.
+
+## Running standalone Fortran examples
 
 The `easifem test` command discovers standalone `*_test_*.F90` and
 `*_test_*.f90` programs in a directory. It builds and executes them one at a
@@ -24,16 +56,14 @@ easifem test ./examples --list
 easifem test ./src/modules --recursive --filter 'DG*' --filter 'H1*'
 ```
 
-Discovery is sorted by relative filename. Without `--recursive`, only the
-supplied directory is searched. Recursive discovery skips hidden directories,
-`build`, and `CMakeFiles`. It does not follow symlinks below the root; an
-explicitly supplied root symlink is resolved. Filters use Go `filepath.Match`
-globs against a basename or relative path and are ORed together. They are not
-regular expressions; `*` does not cross path separators.
-
-An invalid directory, invalid filter, or empty selection is an error.
-The CLI's existing EASIFEM configuration is required, including for `--list`.
-`--list` cannot be combined with `--json`.
+- Discovery is sorted by relative filename.
+- Without `--recursive`, only the supplied directory is searched.
+- Recursive discovery skips hidden directories, `build`, and `CMakeFiles`.
+- It does not follow symlinks below the root; an explicitly supplied root symlink is resolved.
+- Filters use Go `filepath.Match` globs against a basename or relative path and are ORed together.
+- They are not regular expressions; `*` does not cross path separators.
+- An invalid directory, invalid filter, or empty selection is an error.
+- The CLI's existing EASIFEM configuration is required, including for `--list`. `--list` cannot be combined with `--json`.
 
 ## Builds and fixture directories
 

@@ -23,19 +23,19 @@ permission for each invocation.
 
 ## Operation reference
 
-| Intention | Command | Actual effect |
-|---|---|---|
-| Inspect command definitions | Read `internal/*.go` | Source inspection only. |
-| Preview example selection | `easifem test DIR --list` | No Fortran build/run; normal CLI configuration/cache initialization still occurs. |
-| Build a library for development | `easifem dev classes` | Local Debug build, no install/download. |
-| Build/install local library sources | `easifem install classes --no-download` | Builds and installs; download is skipped. |
-| Run one example | `easifem run Name_test_1.F90` | Generates source-dir CMakeLists, builds and executes. |
-| Run an example suite | `easifem test DIR` | Isolated executable builds, sequential execution, logs and statuses. |
-| Diagnose using `easifem lint` | `easifem lint file.F90` | Invokes a compiler and writes object/module artifacts. |
-| Remove package artifacts | `easifem clean classes` | Deletes configured build and install directories. |
-| Build the Go CLI | `go build -o /tmp/easifem-review ./cmd/easifem` | Compiles Go; creates a review binary and updates Go caches. |
-| Install the Go CLI | `go install ./cmd/easifem` | Builds and replaces the executable in GOBIN/default GOPATH bin. |
-| Test the Go implementation | `go test ./internal/...` | Builds and runs Go tests; unit tests do not run Fortran examples. |
+| Intention                           | Command                                         | Actual effect                                                                     |
+| ----------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------- |
+| Inspect command definitions         | Read `internal/*.go`                            | Source inspection only.                                                           |
+| Preview example selection           | `easifem test DIR --list`                       | No Fortran build/run; normal CLI configuration/cache initialization still occurs. |
+| Build a library for development     | `easifem dev classes`                           | Local Debug build, no install/download.                                           |
+| Build/install local library sources | `easifem install classes --no-download`         | Builds and installs; download is skipped.                                         |
+| Run one example                     | `easifem run Name_test_1.F90`                   | Generates source-dir CMakeLists, builds and executes.                             |
+| Run an example suite                | `easifem test DIR`                              | Isolated executable builds, sequential execution, logs and statuses.              |
+| Diagnose using `easifem lint`       | `easifem lint file.F90`                         | Invokes a compiler and writes object/module artifacts.                            |
+| Remove package artifacts            | `easifem clean classes`                         | Deletes configured build and install directories.                                 |
+| Build the Go CLI                    | `go build -o /tmp/easifem-review ./cmd/easifem` | Compiles Go; creates a review binary and updates Go caches.                       |
+| Install the Go CLI                  | `go install ./cmd/easifem`                      | Builds and replaces the executable in GOBIN/default GOPATH bin.                   |
+| Test the Go implementation          | `go test ./internal/...`                        | Builds and runs Go tests; unit tests do not run Fortran examples.                 |
 
 The `install` subcommand manages configured packages. It is not the command for
 installing the Go CLI itself. `--no-download` does not mean dry-run or no-build.
