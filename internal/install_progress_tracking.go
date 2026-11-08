@@ -1,81 +1,58 @@
 package internal
 
 import (
-	"fmt"
 	"io"
-	"path/filepath"
+	"os"
 	"sync"
-
-	"github.com/cheggaaa/pb"
-	getter "github.com/hashicorp/go-getter/v2"
 )
 
-// defaultProgressBar is the default instance of a cheggaaa
-// progress bar.
-var defaultProgressBar getter.ProgressTracker = &ProgressBar{}
+// ProgressBar reports actual transferred bytes; protocols without a known
+// content length keep the stage's spinner rather than inventing a percentage.
+type ProgressBar struct{ stage *stageOutput }
 
-// ProgressBar wraps a github.com/cheggaaa/pb.Pool
-// in order to display download progress for one or multiple
-// downloads.
-//
-// If two different instance of ProgressBar try to
-// display a progress only one will be displayed.
-// It is therefore recommended to use DefaultProgressBar
-type ProgressBar struct {
-	// lock everything below
-	lock sync.Mutex
-
-	pool *pb.Pool
-
-	pbs int
-}
-
-func ProgressBarConfig(bar *pb.ProgressBar, prefix string) {
-	bar.SetUnits(pb.U_BYTES)
-	bar.Prefix(prefix)
-}
-
-// TrackProgress instantiates a new progress bar that will
-// display the progress of stream until closed.
-// total can be 0.
-func (cpb *ProgressBar) TrackProgress(src string, currentSize, totalSize int64, stream io.ReadCloser) io.ReadCloser {
-	cpb.lock.Lock()
-	defer cpb.lock.Unlock()
-
-	fmt.Println("currentSize: ", currentSize)
-	fmt.Println("totalSize: ", totalSize)
-
-	newPb := pb.New64(totalSize)
-	newPb.Set64(currentSize)
-	ProgressBarConfig(newPb, filepath.Base(src))
-	if cpb.pool == nil {
-		cpb.pool = pb.NewPool()
-		cpb.pool.Start()
+func (p *ProgressBar) TrackProgress(src string, currentSize, totalSize int64, stream io.ReadCloser) io.ReadCloser {
+	stage := p.stage
+	owned := stage == nil
+	if owned {
+		stage = newStageOutput(os.Stderr, "Download", animatedOutput(), quiet)
 	}
-	cpb.pool.Add(newPb)
-	reader := newPb.NewProxyReader(stream)
+	stage.mu.Lock()
+	stage.bytes, stage.completed, stage.total = true, currentSize, totalSize
+	stage.initialBytes = currentSize
+	stage.mu.Unlock()
+	return &progressReader{stream: stream, stage: stage, owned: owned}
+}
 
-	cpb.pbs++
-	return &readCloser{
-		Reader: reader,
-		close: func() error {
-			cpb.lock.Lock()
-			defer cpb.lock.Unlock()
+type progressReader struct {
+	stream   io.ReadCloser
+	stage    *stageOutput
+	owned    bool
+	once     sync.Once
+	closeErr error
+	readErr  error
+}
 
-			newPb.Finish()
-			cpb.pbs--
-			if cpb.pbs <= 0 {
-				cpb.pool.Stop()
-				cpb.pool = nil
+func (r *progressReader) Read(data []byte) (int, error) {
+	n, err := r.stream.Read(data)
+	r.stage.mu.Lock()
+	r.stage.completed += int64(n)
+	r.stage.mu.Unlock()
+	if err != nil && err != io.EOF {
+		r.readErr = err
+	}
+	return n, err
+}
+
+func (r *progressReader) Close() error {
+	r.once.Do(func() {
+		r.closeErr = r.stream.Close()
+		if r.owned {
+			err := r.readErr
+			if err == nil {
+				err = r.closeErr
 			}
-			return nil
-		},
-	}
+			r.stage.finish(err)
+		}
+	})
+	return r.closeErr
 }
-
-type readCloser struct {
-	io.Reader
-	close func() error
-}
-
-func (c *readCloser) Close() error { return c.close() }

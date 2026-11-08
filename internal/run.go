@@ -5,9 +5,7 @@ Copyright © 2024 Vikas Sharma vickysharma0812@gmail.com
 package internal
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -38,7 +36,7 @@ var runCmd = &cobra.Command{
 			files = files + " " + file
 		}
 
-		err = run(files, pwd)
+		err = runWithFlags(files, pwd, cmd.Flags().Changed)
 		if err != nil {
 			log.Fatalln("[err] :: run.go | run() ➡ ", err)
 		}
@@ -51,13 +49,17 @@ var runCmd = &cobra.Command{
 
 // run a single package
 func run(filename, pwd string) error {
+	return runWithFlags(filename, pwd, func(string) bool { return false })
+}
+
+func runWithFlags(filename, pwd string, changed func(string) bool) error {
 	var err error
 
 	runner := Runner{
 		BuildDir:            "build",
 		BuildType:           "Release",
 		CMakeMinimumVersion: "3.20.0",
-		Compiler:            "gfortran",
+		Compiler:            "", // let CMake choose unless runner.toml sets one
 		FileName:            filename,
 		Language:            "Fortran",
 		ProjectName:         "easifemApp",
@@ -71,8 +73,12 @@ func run(filename, pwd string) error {
 	tomlFile := path.Join(pwd, "runner.toml")
 
 	if _, err = os.Stat(tomlFile); !os.IsNotExist(err) {
-		_, _ = toml.DecodeFile(tomlFile, &runner)
+		if _, err = toml.DecodeFile(tomlFile, &runner); err != nil {
+			return fmt.Errorf("read runner.toml: %w", err)
+		}
 	}
+
+	applyRunFlags(&runner, changed)
 
 	runner.BuildDir = os.ExpandEnv(runner.BuildDir)
 	runner.SourceDir = os.ExpandEnv(runner.SourceDir)
@@ -81,7 +87,21 @@ func run(filename, pwd string) error {
 		runner.TargetLibs = append(runner.TargetLibs, "easifemBase")
 	}
 
+	sourceBase, err := expandTestPath(pwd, runner.SourceDir)
+	if err != nil {
+		return fmt.Errorf("run() | error = %w", err)
+	}
+	compiler, err := fortranCompiler(runner.Compiler, runner.CompilerPath, sourceBase)
+	if err != nil {
+		return fmt.Errorf("run() | error = %w", err)
+	}
+
 	cmake := makeCmakeFile(runner)
+	settings, err := runnerTargetSettings(runner, sourceBase, nil)
+	if err != nil {
+		return fmt.Errorf("run() | error = %w", err)
+	}
+	cmake = append(cmake, settings...)
 	err = writeCmakeFile(cmake, pwd)
 	if err != nil {
 		return fmt.Errorf("run() | error = %w", err)
@@ -93,6 +113,10 @@ func run(filename, pwd string) error {
 		"-S", runner.SourceDir,
 		"-B", runner.BuildDir,
 		"-D CMAKE_BUILD_TYPE:STRING=" + runner.BuildType,
+	}
+
+	if compiler != "" {
+		cargs = append(cargs, "-DCMAKE_Fortran_COMPILER:FILEPATH="+compiler)
 	}
 
 	if runner.CacheClean {
@@ -138,7 +162,7 @@ func run(filename, pwd string) error {
 
 func init() {
 	runCmd.Flags().BoolVar(&noRun, "no-run", false,
-		"Only create the binary file and do not run it.")
+		"Only create the binary file and do not run it (overrides runner.toml).")
 	runCmd.Flags().BoolVar(&cacheClean, "cache-clean", false,
 		"Clean all cache files and recreate them from scratch")
 	runCmd.Flags().BoolVar(&reBuild, "rebuild", false,
@@ -237,76 +261,29 @@ func writeCmakeFile(cmake []string, pwd string) error {
 //                                                                lintRunCmd
 //----------------------------------------------------------------------------
 
+// Forward output directly and return the actual subprocess error. Passing err
+// by value to a goroutine previously discarded build and execution failures.
 func runRunCmd(cargs []string, qmode bool) error {
 	cmd := exec.Command(cargs[0], cargs[1:]...)
-
-	output_stdout := make(chan []byte)
-
-	var err error
-	go runExecuteCmd(cmd, output_stdout, err)
-
-	if err != nil {
-		return err
-	}
-
+	cmd.Stdin = os.Stdin
 	if qmode {
-		for data := range output_stdout {
-			log.Println(string(data))
-		}
+		cmd.Stdout = log.Writer()
 	} else {
-		for data := range output_stdout {
-			fmt.Println(string(data))
-		}
+		cmd.Stdout = os.Stdout
 	}
-
-	return err
+	cmd.Stderr = cmd.Stdout
+	return cmd.Run()
 }
 
-//----------------------------------------------------------------------------
-//                                                              pkgExecuteCmd
-//----------------------------------------------------------------------------
-
-func runExecuteCmd(cmd *exec.Cmd, output_stdout chan []byte, err error) {
-	defer close(output_stdout)
-	var stdout io.ReadCloser
-
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
-		return
+// Explicit CLI flags override runner.toml, including explicit false values.
+func applyRunFlags(runner *Runner, changed func(string) bool) {
+	if changed("no-run") {
+		runner.IsExecute = noRun
 	}
-
-	cmd.Stdin = os.Stdin
-
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		log.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error getting stdout pipe: %v", err))
-		return
+	if changed("cache-clean") {
+		runner.CacheClean = cacheClean
 	}
-
-	cmd.Stderr = cmd.Stdout
-	stdout_scanner := bufio.NewScanner(stdout)
-
-	done := make(chan struct{})
-
-	err = cmd.Start()
-	if err != nil {
-		output_stdout <- []byte(fmt.Sprintf("Error executing: %v", err))
-		return
-	}
-
-	go func() {
-		for stdout_scanner.Scan() {
-			output_stdout <- stdout_scanner.Bytes()
-		}
-		done <- struct{}{}
-	}()
-
-	<-done
-
-	err = cmd.Wait()
-	if err != nil {
-		fmt.Println(err)
-		output_stdout <- []byte(fmt.Sprintf("Error waiting for the script to complete: %v", err))
+	if changed("rebuild") {
+		runner.ReBuild = reBuild
 	}
 }

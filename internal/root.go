@@ -18,9 +18,10 @@ import (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "easifem",
-	Short: "A brief description of your application",
-	Long:  easifem_intro,
+	Use:     "easifem",
+	Version: Version,
+	Short:   "A brief description of your application",
+	Long:    easifem_intro,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(easifem_banner)
 		if err := cmd.Help(); err != nil {
@@ -34,11 +35,13 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		log.Fatalln("[err] :: root.go | Execute() ➡️ ", err)
+		fmt.Fprintln(os.Stderr, "easifem:", err)
+		os.Exit(1)
 	}
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&verbose, "verbose", false, "Show configuration details, commands, and full build output (disable animation)")
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "",
@@ -48,7 +51,7 @@ func init() {
 		"Run commands in quiet mode.")
 
 	rootCmd.PersistentFlags().BoolVar(&noDownload, "no-download", false,
-		"download packages")
+		"Skip downloading package sources during install (still builds and installs)")
 
 	rootCmd.PersistentFlags().StringVar(&easifem_current_env_name,
 		"env", easifem_default_env_name, "Current environment name")
