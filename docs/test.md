@@ -1,14 +1,12 @@
 # Command: test
 
-## Summary
-
 ```sh
-easifem test [directory]
+easifem test [directory] [flags]
 ```
 
-Discover, build and run standalone `*_test_*.F90`/`.f90` programs. The directory
-defaults to the current directory. Tests run sequentially with isolated builds,
-while runtime fixture paths are resolved from each example's directory.
+Discover the standalone `*_test_*.F90`/`*_test_*.f90` programs in a directory
+(the current directory by default), then build and run each one, one at a
+time, with a separate log for each.
 
 ```sh
 easifem test ./examples --list
@@ -16,170 +14,133 @@ easifem test ./examples --filter 'Get*' --filter 'DG*'
 easifem test ./src/modules --recursive --timeout 5m --json results.json
 ```
 
-| Flag | Default | Meaning |
-|---|---|---|
-| `--recursive`, `-r` | false | Search subdirectories, excluding hidden/build directories. |
-| `--filter` | all matching programs | Repeatable filename/relative-path glob; alternatives are ORed. |
-| `--list` | false | Print selection without compiling or executing examples. |
-| `--logdir` | system temporary directory | Parent of a unique per-invocation log directory. |
-| `--json` | disabled | Write a version-1 report to a `.json` filename. |
-| `--timeout` | `0` | Per-test build plus execution deadline; `0` disables it. |
-| `--fail-fast` | false | Stop after the first unsuccessful result. |
-| `--rebuild` | false | Clean only the test's isolated build before compiling. |
-| `--allow-no-check` | false | Accept `NOCHECK` results without relabeling them as passes. |
+Test programs are compiled against the **installed** libraries. `easifem test`
+does not build, install or clean the EASIFEM libraries themselves; after
+changing library source, run [`easifem install`](install.md) first.
 
-- Empty selections and invalid filters are errors.
-- `--list` cannot be combined with `--json`.
-- The command returns nonzero for failures, unrun selected tests, interruption, or infrastructure/reporting errors.
-- Explicit skips are accepted.
+## Flags
 
-## Running standalone Fortran examples
+| Flag                | Default                    | Meaning                                                           |
+| ------------------- | -------------------------- | ----------------------------------------------------------------- |
+| `--recursive`, `-r` | false                      | Also search subdirectories (see [Selection](#selection)).         |
+| `--filter`          | all programs               | Glob on the filename or relative path. Repeat to OR several.      |
+| `--list`            | false                      | Print the selection without building or running anything.         |
+| `--logdir`          | system temporary directory | Parent of a unique per-invocation log directory.                  |
+| `--json`            | disabled                   | Write a version-1 JSON report to this `.json` file.               |
+| `--timeout`         | `0` (no limit)             | Deadline per program, covering configure, build and execution.    |
+| `--fail-fast`       | false                      | Stop after the first unsuccessful program.                        |
+| `--rebuild`         | false                      | `--clean-first` in each program's isolated build directory.       |
+| `--allow-no-check`  | false                      | Treat `NOCHECK` as acceptable (it is still reported as `NOCHECK`).|
 
-The `easifem test` command discovers standalone `*_test_*.F90` and
-`*_test_*.f90` programs in a directory. It builds and executes them one at a
-time and produces a separate log for each program.
-
-```sh
-easifem test /path/to/classes/src/modules/FEDOF/examples
-```
-
-This compiles test programs against already-installed libraries; it does
-not build, install, or clean the EASIFEM libraries themselves.
+`--list` cannot be combined with `--json`. A negative `--timeout`, a `--json`
+path without a `.json` extension, an invalid filter, an invalid directory and
+an empty selection are all errors.
 
 ## Selection
 
 ```sh
-# Preview the selected filenames without building or executing examples.
+# Preview the selection without building or executing examples
 easifem test ./examples --list
 
-# Search below a modules directory, selecting either prefix.
+# Search below a modules directory, selecting either prefix
 easifem test ./src/modules --recursive --filter 'DG*' --filter 'H1*'
 ```
 
-- Discovery is sorted by relative filename.
-- Without `--recursive`, only the supplied directory is searched.
-- Recursive discovery skips hidden directories, `build`, and `CMakeFiles`.
-- It does not follow symlinks below the root; an explicitly supplied root symlink is resolved.
-- Filters use Go `filepath.Match` globs against a basename or relative path and are ORed together.
-- They are not regular expressions; `*` does not cross path separators.
-- An invalid directory, invalid filter, or empty selection is an error.
-- The CLI's existing EASIFEM configuration is required, including for `--list`. `--list` cannot be combined with `--json`.
+- Programs are sorted by relative path.
+- Without `--recursive`, only the given directory is searched. With it,
+  hidden directories, `build` and `CMakeFiles` are skipped, and symlinks below
+  the root are not followed (a symlinked root directory itself is resolved).
+- Filters are Go [`filepath.Match`](https://pkg.go.dev/path/filepath#Match)
+  globs, matched against the basename or the relative path. They are not
+  regular expressions, and `*` does not match `/`.
+- The EASIFEM [configuration](configuration.md) is required even for `--list`,
+  and start-up still rewrites `cache.toml` and `easifemvar.fish`.
 
-## Builds and fixture directories
+## Builds and working directory
 
-Each example reads `runner.toml` from its own directory. Malformed TOML is a
-build error. Without this file, the test runner defaults to Debug, gfortran,
-Ninja, and the installed `easifemBase` target. Existing `runner.toml` settings
-such as `TargetLibs = ["easifemClasses"]` are preserved.
+Each program reads `runner.toml` from its own directory (see
+[configuration](configuration.md#runnertoml)). Without one, the runner uses
+`Debug`, `gfortran`, Ninja and the installed `easifemBase` target. Malformed
+`runner.toml` gives a `COMPILE` result.
 
-Every program gets a fresh temporary workspace beneath the configured
-`BuildDir`. Relative `BuildDir` values are resolved from the example directory;
-without a setting, the parent is the system temporary directory under
-`easifem-example-builds`. The workspace contains `source/CMakeLists.txt` and
-`build/`. The original examples' `CMakeLists.txt` files are never overwritten.
-Build workspaces are retained for inspection, including after failures.
+- **Isolated builds.** Every program gets a fresh workspace,
+  `<BuildDir>/easifem-test-XXXX/`, containing a generated
+  `source/CMakeLists.txt` and `build/`. `BuildDir` defaults to
+  `easifem-example-builds` in the system temporary directory; a relative value
+  is resolved from the example directory. Workspaces are kept afterwards, also
+  after failures, so you can inspect them. The examples' own `CMakeLists.txt`
+  files are never touched.
+- **Source settings.** The main source is always the discovered program
+  (`FileName` is ignored). `ExtraFileNames`, `IncludePath`,
+  `ExtraIncludePath`, `LibraryPath`, `ExtraCMakePrefixPath`, `ExtraLibs` and
+  `Flags` are honored. Relative paths are resolved from `SourceDir`, which
+  defaults to the example directory. The example directory and `SourceDir` are
+  always on the include path. `CompilerPath` may be a compiler executable or
+  the directory that contains `Compiler`.
+- **Rebuilds.** `--rebuild` or `ReBuild = true` adds `--clean-first` to that
+  program's isolated build. `CacheClean` and `IsExecute` have no effect here:
+  workspaces are always fresh, and every selected program is executed. A
+  failed build is never followed by running an older executable.
+- **Runtime directory.** Each executable runs from its example directory, so
+  relative mesh and fixture paths keep working. Standard input is empty
+  (EOF). Isolation covers the build only: programs can still write files next
+  to the example, so do not run two invocations that write the same output
+  files in the same directory at the same time.
 
-`SourceDir`, extra source files, include paths, library directories, and extra
-CMake prefix paths are honored. Relative source-related paths are resolved
-from `SourceDir`, whose default is the example's directory. Include paths
-always include the example directory and `SourceDir`. `Flags` supplies
-individual compile options. `CompilerPath` may name a compiler executable or
-its containing directory. `FileName` is always the discovered program;
-`ExtraFileNames` supplies its additional sources.
+## Results
 
-The generated executable is run from the original example directory, so
-relative mesh and fixture paths retain their existing meaning. Programs are
-noninteractive: standard input is EOF. Existing programs can still modify
-files in their example directory; isolation applies to the generated build,
-not to the program's runtime filesystem.
+| Status      | Meaning                                                                        |
+| ----------- | ------------------------------------------------------------------------------ |
+| `PASS`      | Build and execution succeeded; at least one check passed and none failed.     |
+| `FAIL`      | A `not ok` check, a TAP bail-out, or an inconsistent TAP plan or numbering.   |
+| `COMPILE`   | Build setup, `runner.toml`, CMake configuration, compilation or linking failed.|
+| `CRASH`     | Execution failed, or printed a recognized runtime-error diagnostic.           |
+| `TIMEOUT`   | The `--timeout` deadline expired during build or execution.                   |
+| `CANCELLED` | The run was interrupted (Ctrl-C or SIGTERM).                                   |
+| `NOCHECK`   | Execution succeeded but printed no checks.                                     |
+| `SKIP`      | Only explicit TAP skips/TODOs, or a zero-check plan marked as skipped.         |
 
-`CacheClean` and `IsExecute` in `runner.toml` do not control this command:
-workspaces are fresh and selected programs are always executed. `--rebuild`
-or `ReBuild = true` requests `cmake --build --clean-first` only in that test's
-isolated build directory. No prior test executable is reused after a failed
-build. Separate invocations have separate workspaces, though programs writing
-fixed runtime filenames must still not be run concurrently in one directory.
+Checks are read only from the program's output, never from build output:
 
-## Results and exit status
+- Flat `Test_Method`/TAP-style `ok` and `not ok` lines are recognized; ANSI
+  color codes are ignored.
+- An optional `1..N` plan is verified when present, and numbered checks must
+  be sequential.
+- `# SKIP` and `# TODO` checks are reported as skipped.
+- Nested TAP subtests are not supported.
+- A process failure overrides earlier passing checks (the result is `CRASH`).
 
-| Status | Meaning |
-|---|---|
-| `PASS` | Build and execution succeeded; at least one assertion passed and none failed. |
-| `FAIL` | `not ok`, a TAP bailout, or an inconsistent TAP plan/check numbering. |
-| `COMPILE` | Configuration, compilation, linking, or build setup failed. |
-| `CRASH` | Execution failed or emitted a recognized runtime-error diagnostic. |
-| `TIMEOUT` | The per-program deadline expired during build or execution. |
-| `CANCELLED` | Execution was interrupted. |
-| `NOCHECK` | Execution succeeded but reported no checks. |
-| `SKIP` | Only explicit TAP skips/TODO checks, or a skipped zero-check plan. |
+## Exit status
 
-Checks use flat `Test_Method`/TAP-style `ok` and `not ok` records. Optional
-`1..N` plans are checked when present. Explicit numbered checks must be
-sequential. `# SKIP` and `# TODO` records are reported as skipped. Nested TAP
-subtests are not supported. ANSI color escapes are ignored when recognizing
-records. Build output is logged but never interpreted as execution checks.
-A process failure overrides any earlier passing assertions.
+The command exits with status 1 when any selected program is unsuccessful or
+was not run, when the run is interrupted, or on an infrastructure or reporting
+error. `PASS` and `SKIP` are successful. `NOCHECK` is unsuccessful unless
+`--allow-no-check` is given; use that flag only when you deliberately accept
+programs without checks. `--fail-fast` stops after the first unsuccessful
+result, taking `--allow-no-check` into account.
 
-The exit status is nonzero for any unsuccessful program, unrun selected
-program, interruption, or infrastructure/reporting error. `NOCHECK` is
-unsuccessful by default; `--allow-no-check` explicitly accepts it without
-relabeling it as `PASS`. Explicit `SKIP` results are acceptable. `--fail-fast`
-stops after the first unsuccessful result, respecting `--allow-no-check`.
-
-## Logs, JSON, and interruption
+## Logs, JSON and interruption
 
 ```sh
 easifem test ./examples --logdir ./test-logs --json ./results.json
 easifem test ./examples --timeout 5m --fail-fast
 ```
 
-Each invocation creates a unique log directory under `--logdir`, or the
-system temporary directory. Log filenames include an index to distinguish
-identically named tests in different directories. Logs contain build and
-execution output, the commands, and their working directories.
+**Logs.** Each invocation creates a unique log directory under `--logdir` (or
+the system temporary directory) and prints its path. Each program's log holds
+the build and execution output, each command and its working directory. Log
+filenames carry an index, so tests with the same name in different
+directories do not collide.
 
-The optional JSON report requires a `.json` filename. It contains format
-version `1`, selected/completed/unrun counts, timestamps, result statuses,
-assertion counts, error details, log paths, and executable paths. Durations
-are integer nanoseconds. Reports are written through a temporary file and
-retain partial results on interruption. A previous report at that path is
-replaced only when the new report has been written successfully.
+**JSON report.** The report has `"version": 1`, selected/completed/not-run
+counts, timestamps, and for each program its status, check counts, error
+details, log path and executable path. Durations are integer nanoseconds. The
+report is written via a temporary file, so an existing report is replaced
+only once the new one is complete, and an interrupted run still produces a
+report with partial results.
 
-`--timeout` covers configuration, build, and execution for each test; zero
-(the default) disables the deadline. Ctrl-C/SIGTERM stops the active test and
-leaves remaining programs unrun. On Unix, cancellation terminates the child
-process group, including compiler descendants. On other platforms, Go's
-default cancellation terminates the immediate process only. Stream-drain
-waiting is bounded to avoid hanging indefinitely on inherited output pipes.
-
-## Implementation and validation
-
-`internal/testrunner` uses only the Go standard library. Its executor interface
-separates discovery/reporting from the CLI's CMake and `runner.toml` adapter.
-Cobra flag handling remains in `internal/test.go`.
-
-The existing `easifem run` command also now propagates subprocess failures:
-it stops after failed configuration or compilation instead of continuing to
-an earlier executable. Its process output is forwarded directly.
-
-Suggested validation commands for the maintainer:
-
-```sh
-go test ./internal/testrunner
-go test ./internal -run '^TestRunRunCmdPropagatesExitFailure$'
-go build -o /tmp/easifem-review ./cmd/easifem
-/tmp/easifem-review test /path/to/classes/src/modules/FEDOF/examples --list
-/tmp/easifem-review test /path/to/classes/src/modules/FEDOF/examples \
-  --filter 'DG*' --json /tmp/dg-results.json
-```
-
-Unit tests use fake executors; the `run` regression starts only a Go helper
-process with a failing exit code. They do not build or run Fortran programs.
-Validation completed on macOS on 2026-10-31:
-
-- CLI and runner package unit tests passed.
-- Discovery found all 67 FEDOF examples; the DG and full FEDOF runs passed.
-- Deliberate compilation, assertion, runtime and timeout failures returned
-  COMPILE, FAIL, CRASH and TIMEOUT respectively, each with exit status one.
-- A passing control returned zero. NOCHECK returned one by default and zero
-  with `--allow-no-check`. Per-program logs and JSON reports were verified.
+**Interruption.** Ctrl-C or SIGTERM stops the running program; the remaining
+programs are counted as not run. On Unix the whole child process group is
+terminated, including compiler subprocesses. On other platforms only the
+immediate child process is terminated. Waiting for output streams to close is
+bounded, so a stray background process cannot hang the runner.

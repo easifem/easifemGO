@@ -1,70 +1,80 @@
 # EASIFEM CLI
 
-`easifemGO` provides the `easifem` command-line program for configuring local
-EASIFEM packages, building/installing libraries, and building/running Fortran
-applications and examples.
+`easifemGO` provides the `easifem` command-line program. It configures local
+EASIFEM packages, builds and installs the Fortran libraries, and builds and
+runs Fortran applications and examples against those installed libraries.
 
 ## Installation
 
-### Install from go
+Install the latest release with Go:
 
 ```sh
 go install github.com/easifem/easifemGO/cmd/easifem@latest
 ```
 
-### Build from source
-
-Clone this repository.
-
-From the `easifemGO` repository:
+Or install from a clone of this repository:
 
 ```sh
-go test ./internal/...
-go build -o /tmp/easifem-review ./cmd/easifem
 go install ./cmd/easifem
 ```
 
-`go install` uses `GOBIN`, or the Go default under `GOPATH/bin` when `GOBIN` is
-unset. Ensure that directory is on `PATH`. Installing the CLI does not install
-EASIFEM's Fortran libraries.
+`go install` writes the executable to `GOBIN`, or to `$(go env GOPATH)/bin`
+when `GOBIN` is unset. Make sure that directory is on your `PATH`.
 
-Use `easifem test --help` for the installed runner's flags. Source files and
-these guides describe the current implementation; some older banner/help text
-still describes historical behavior.
+Installing the CLI does not install EASIFEM's Fortran libraries. After
+[configuring](docs/configuration.md) the CLI, install those with
+`easifem install` (for example, `easifem install easifem`).
 
 ## Common workflows
 
-Run these from the appropriate repository or examples directory. A working
-EASIFEM configuration and installed library dependencies are required.
+Run these from the appropriate repository or examples directory. They require
+a working EASIFEM [configuration](docs/configuration.md).
 
 ```sh
-# Build local classes sources in Debug without installing
+# Build local classes sources in Debug, without installing them
 easifem dev classes
 
 # Build and install local sources without downloading them again
 easifem install classes --no-download
 
-# Build and execute one standalone program from its examples directory
+# Build and execute one program from its examples directory
 easifem run Initiate_test_1.F90
 
-# Preview all standalone tests in a directory
+# List the standalone tests in a directory without building them
 easifem test /path/to/classes/src/modules/FEDOF/examples --list
 
-# Run selected tests and retain a JSON report
+# Run selected tests and keep a JSON report
 easifem test /path/to/classes/src/modules/FEDOF/examples \
   --filter 'DG*' --timeout 5m --json /tmp/dg-results.json
 ```
 
-> For the complete suite, omit `--filter`. For subdirectories, add `--recursive`.
+To run the complete suite, omit `--filter`. To include subdirectories, add
+`--recursive`.
 
-Test commands compile examples against installed libraries; they do not rebuild
-or install those libraries. Changes to library source must first be built and
-installed when you want examples to exercise them.
+`easifem run` and `easifem test` compile examples against the **installed**
+libraries; they do not rebuild or install those libraries. After changing
+library source, run `easifem install <pkg> --no-download` first if you want
+the examples to use your changes.
 
-## Guides
+## User guide
 
-- [Command reference](/docs/commands.md): commands, flags and important side effects.
-- [Configuration](/docs/configuration.md): main configuration, package plugins, `runner.toml`, and generated files.
-- [Standalone test runner](/docs/test-runner.md): discovery, results, logs, JSON, cancellation and validation.
-- [AI-agent operating guide](/docs/ai-guide.md): authorization and reliable workflows for agents using the CLI in EASIFEM repositories.
-- [Repository development instructions](AGENTS.md): instructions for models modifying this Go codebase.
+- [Command reference](docs/commands.md): global flags and an overview of every
+  command.
+- [Configuration](docs/configuration.md): main configuration, package plugins,
+  `runner.toml`, generated files and troubleshooting.
+- Commands: [`dev`](docs/dev.md), [`install`](docs/install.md),
+  [`run`](docs/run.md), [`test`](docs/test.md), [`clean`](docs/clean.md),
+  [`lint`](docs/lint.md), [`setenv`](docs/setenv.md).
+- [Library progress and logs](docs/library-progress.md): the `dev`/`install`
+  dashboard and build logs.
+
+`easifem <command> --help` shows the flags of the installed executable. Some
+older banner and long-help text describes historical behavior; these guides
+describe the current implementation.
+
+## Developer guide
+
+- [Development](docs/development.md): building, testing and validating changes
+  to the CLI.
+- [Architecture](docs/architecture.md): the repository map and design rules.
+- [AGENTS.md](AGENTS.md): instructions for AI coding agents.

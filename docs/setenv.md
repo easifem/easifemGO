@@ -1,7 +1,14 @@
 # Command: setenv
 
-Currently prints the banner and command help. Directory flags registered on
-this command are `--buildDir`/`-b`, `--sourceDir`/`-s`, `--installDir`/`-i`,
-and `--lintDir`/`-l`. The command does not write a persistent main configuration.
-Edit the TOML configuration for persistent setup. Historical help examples
-using `--build`, `--source` or `--install` do not match the registered flag names.
+```sh
+easifem setenv
+```
+
+Currently prints the banner and help only. It does **not** write or change
+any configuration. To set up directories persistently, edit the
+[main configuration](configuration.md#main-configuration).
+
+The command registers `--buildDir`/`-b`, `--sourceDir`/`-s`,
+`--installDir`/`-i` and `--lintDir`/`-l`, but they have no lasting effect.
+Older help examples that use `--build`, `--source` or `--install` do not match
+these flag names.

@@ -1,33 +1,43 @@
-# Command: Run
+# Command: run
 
 ```sh
 easifem run filename [flags]
 ```
 
-Build and, by default, execute a standalone source file. Run it from the
-examples/application directory so its `runner.toml` and runtime data are found.
+Build one Fortran program against the installed EASIFEM libraries and, by
+default, execute it. Run it from the program's directory so that its
+`runner.toml` and runtime data files are found.
 
 ```sh
 easifem run Initiate_test_1.F90
 easifem run Initiate_test_1.F90 --no-run
+easifem run Initiate_test_1.F90 --rebuild
 ```
 
 | Flag            | Effect                                                 |
 | --------------- | ------------------------------------------------------ |
 | `--no-run`      | Configure and build the executable without running it. |
-| `--cache-clean` | Add `--fresh` to CMake configuration.                  |
-| `--rebuild`     | Add `--clean-first` to the example build.              |
+| `--cache-clean` | Pass `--fresh` to CMake configuration.                 |
+| `--rebuild`     | Pass `--clean-first` to the build.                     |
 
-Without `runner.toml`, this older command defaults to Release, a relative
-`build` directory, and `easifemBase`. It generates/overwrites `CMakeLists.txt`
-in the current directory. In contrast, `easifem test` defaults to Debug and
-creates isolated generated projects without replacing source CMake files.
-Configuration and build failures stop `run`; an older executable is not then
-executed. These flags do not rebuild the installed EASIFEM libraries.
+> **Note:** `run` writes a generated `CMakeLists.txt` into the current
+> directory, replacing any existing one. Do not use it in a directory whose
+> own CMake project must be kept. For suites of `*_test_*` programs, use
+> [`easifem test`](test.md), which builds in isolated directories.
 
-Explicit `--no-run`, `--cache-clean`, and `--rebuild` flags override the
-corresponding `runner.toml` values, including explicit false flags. Malformed
-`runner.toml` is an error.
+## Behavior
 
-Use `--cache-clean`/`--rebuild` only when clearing the example artifacts is
-intended; they are not library-clean commands.
+- Settings come from `runner.toml` in the current directory (see
+  [configuration](configuration.md#runnertoml)). Without one, `run` uses a
+  `Release` build in `./build`, `gfortran`, Ninja and the `easifemBase`
+  target. Malformed `runner.toml` is an error.
+- Additional filenames after the first are compiled into the same
+  executable, as are `ExtraFileNames` from `runner.toml`.
+- Explicit flags override the matching `runner.toml` keys (`IsExecute`,
+  `CacheClean`, `ReBuild`), including flags explicitly set to false such as
+  `--rebuild=false`.
+- If configuration or compilation fails, `run` stops; an older executable is
+  never executed.
+- The program's output is forwarded directly to the terminal.
+- `--cache-clean` and `--rebuild` affect only this program's build directory.
+  They do not rebuild the installed EASIFEM libraries.
