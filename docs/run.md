@@ -29,8 +29,12 @@ easifem run Initiate_test_1.F90 --rebuild
 
 - Settings come from `runner.toml` in the current directory (see
   [configuration](configuration.md#runnertoml)). Without one, `run` uses a
-  `Release` build in `./build`, `gfortran`, Ninja and the `easifemBase`
-  target. Malformed `runner.toml` is an error.
+  `Release` build in `./build`, Ninja and the `easifemBase` target, and lets
+  CMake pick the Fortran compiler (for example from `FC`). Malformed
+  `runner.toml` is an error.
+- `Compiler`/`CompilerPath`, `IncludePath`, `ExtraIncludePath`,
+  `LibraryPath` and `Flags` are applied as in `easifem test`; relative paths
+  are resolved from `SourceDir`.
 - Additional filenames after the first are compiled into the same
   executable, as are `ExtraFileNames` from `runner.toml`.
 - Explicit flags override the matching `runner.toml` keys (`IsExecute`,

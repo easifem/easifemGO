@@ -51,7 +51,7 @@ func init() {
 		"Run commands in quiet mode.")
 
 	rootCmd.PersistentFlags().BoolVar(&noDownload, "no-download", false,
-		"download packages")
+		"Skip downloading package sources during install (still builds and installs)")
 
 	rootCmd.PersistentFlags().StringVar(&easifem_current_env_name,
 		"env", easifem_default_env_name, "Current environment name")

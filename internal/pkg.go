@@ -110,11 +110,16 @@ func pkgCmakeWithOutput(pkg *Pkg, pwd string, output *libraryOutput) error {
 }
 
 //----------------------------------------------------------------------------
-//                                                                pkgMason
+//                                                          checkBuildSystem
 //----------------------------------------------------------------------------
 
-// Install package usign mason build system
-func PkgMason(pkg *Pkg, pwd string) {
+// checkBuildSystem reports a build system that PkgInstall cannot run.
+func checkBuildSystem(pkg *Pkg) error {
+	switch pkg.BuildSystem {
+	case "cmake", "make":
+		return nil
+	}
+	return fmt.Errorf("package %s: unsupported buildSystem %q (supported: cmake, make)", pkg.Name, pkg.BuildSystem)
 }
 
 //----------------------------------------------------------------------------
@@ -124,6 +129,12 @@ func PkgMason(pkg *Pkg, pwd string) {
 func PkgInstall(pkg *Pkg, pwd string) (err error) {
 	if !pkg.IsActive {
 		return nil
+	}
+
+	// Reject unsupported build systems before downloading anything, so an
+	// install never reports success without building.
+	if err := checkBuildSystem(pkg); err != nil {
+		return err
 	}
 
 	output := newLibraryOutput(pkg.Name, pkg.BuildDir, "install")
@@ -151,9 +162,6 @@ func PkgInstall(pkg *Pkg, pwd string) (err error) {
 		if err := pkgCmakeWithOutput(pkg, pwd, output); err != nil {
 			return err
 		}
-	case "mason":
-		PkgMason(pkg, pwd)
-	default:
 	}
 
 	return nil

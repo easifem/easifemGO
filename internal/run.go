@@ -59,7 +59,7 @@ func runWithFlags(filename, pwd string, changed func(string) bool) error {
 		BuildDir:            "build",
 		BuildType:           "Release",
 		CMakeMinimumVersion: "3.20.0",
-		Compiler:            "gfortran",
+		Compiler:            "", // let CMake choose unless runner.toml sets one
 		FileName:            filename,
 		Language:            "Fortran",
 		ProjectName:         "easifemApp",
@@ -87,7 +87,21 @@ func runWithFlags(filename, pwd string, changed func(string) bool) error {
 		runner.TargetLibs = append(runner.TargetLibs, "easifemBase")
 	}
 
+	sourceBase, err := expandTestPath(pwd, runner.SourceDir)
+	if err != nil {
+		return fmt.Errorf("run() | error = %w", err)
+	}
+	compiler, err := fortranCompiler(runner.Compiler, runner.CompilerPath, sourceBase)
+	if err != nil {
+		return fmt.Errorf("run() | error = %w", err)
+	}
+
 	cmake := makeCmakeFile(runner)
+	settings, err := runnerTargetSettings(runner, sourceBase, nil)
+	if err != nil {
+		return fmt.Errorf("run() | error = %w", err)
+	}
+	cmake = append(cmake, settings...)
 	err = writeCmakeFile(cmake, pwd)
 	if err != nil {
 		return fmt.Errorf("run() | error = %w", err)
@@ -99,6 +113,10 @@ func runWithFlags(filename, pwd string, changed func(string) bool) error {
 		"-S", runner.SourceDir,
 		"-B", runner.BuildDir,
 		"-D CMAKE_BUILD_TYPE:STRING=" + runner.BuildType,
+	}
+
+	if compiler != "" {
+		cargs = append(cargs, "-DCMAKE_Fortran_COMPILER:FILEPATH="+compiler)
 	}
 
 	if runner.CacheClean {

@@ -31,9 +31,6 @@ to the main configuration. So even a command that only lists files, such as
 | `--verbose`      | Show configuration details, each library stage's command, working directory, full output and log path. Disables animation.             |
 | `--no-download`  | Skip the download stage of `easifem install`. Building and installing still happen.                                                    |
 
-The `--help` text of `--no-download` reads "download packages"; the flag in
-fact *skips* downloading when set.
-
 ```sh
 easifem --config /path/to/easifem.toml --env development dev classes
 easifem --quiet test /path/to/examples --list

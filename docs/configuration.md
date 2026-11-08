@@ -84,7 +84,7 @@ Define `base` and any external libraries the same way.
 | `isExtPkg`                            | Default `false`. `true` adds the package to the `extpkgs` group.                                                 |
 | `sourceDir`, `buildDir`, `installDir` | If omitted: `<name>.<key>` in the main configuration, else `<environment dir>/<name>`.                           |
 | `git` / `url`                         | Download source for `easifem install` (without `--no-download`).                                                 |
-| `buildSystem`                         | `cmake` (default) or `make`. See [install](install.md#stages).                                                    |
+| `buildSystem`                         | `cmake` (default) or `make`; other values make `install` fail. See [install](install.md#stages).                |
 | `buildType`                           | Default `Release`. Used by `install`; `easifem dev` always builds `Debug`.                                        |
 | `buildSharedLibs`, `buildStaticLibs`  | Passed to CMake as `BUILD_SHARED_LIBS`/`BUILD_STATIC_LIBS`.                                                       |
 | `buildOptions`                        | Extra arguments for CMake configure (or `./configure` for `make`).                                               |
@@ -137,17 +137,17 @@ CMake search path automatically.
 Other accepted keys:
 
 ```toml
-Compiler = "gfortran"                  # used by easifem test only
-CompilerPath = "/opt/gcc/bin"          # used by easifem test only
+Compiler = "gfortran"
+CompilerPath = "/opt/gcc/bin"          # compiler executable, or its directory
 TargetName = "main.out"
 SourceDir = "."
 ExtraFileNames = ["helper_module.F90"]
-IncludePath = ["include"]              # used by easifem test only
-ExtraIncludePath = ["include"]         # used by easifem test only
-LibraryPath = ["lib"]                  # used by easifem test only
+IncludePath = ["include"]
+ExtraIncludePath = ["include"]
+LibraryPath = ["lib"]
 ExtraCMakePrefixPath = ["/path/to/another/install"]
 ExtraLibs = ["m"]
-Flags = ["-Wall"]                      # used by easifem test only
+Flags = ["-Wall"]
 IsExecute = false                      # true means: build only, do not run
 CacheClean = false
 ReBuild = false
@@ -161,6 +161,7 @@ The two commands treat `runner.toml` differently:
 |                        | `easifem run`                                  | `easifem test`                                         |
 | ---------------------- | ---------------------------------------------- | ------------------------------------------------------ |
 | Default `BuildType`    | `Release`                                      | `Debug`                                                |
+| Default `Compiler`     | Chosen by CMake (e.g. from `FC`)               | `gfortran`                                             |
 | Default `BuildDir`     | `./build`, used directly                       | system temp dir; parent of fresh per-test workspaces   |
 | Generated CMake file   | **Overwrites** `./CMakeLists.txt`              | Written inside the workspace; sources untouched        |
 | Main source            | The filename(s) on the command line            | Always the discovered test (`FileName` ignored)        |

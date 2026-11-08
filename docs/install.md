@@ -28,8 +28,8 @@ easifem --quiet install extpkgs
    - `make`: `<sourceDir>/configure --prefix=<installDir> <buildOptions>`,
      `make` and `make install`, all run in `buildDir`.
 
-   Other values (including `mason`) currently perform no build or install
-   step.
+   Any other value (including `mason`) is rejected with an error before
+   anything is downloaded or built.
 
 The install directory is created if needed. Inactive packages are skipped
 silently. The command stops at the first failing package.
