@@ -5,8 +5,11 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package internal
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -16,7 +19,7 @@ import (
 // easifem clean
 var cleanCmd = &cobra.Command{
 	Use:   "clean pkgname [flags]",
-	Short: "remove build and install files of a pkg",
+	Short: "Remove package build and install directories; reject paths containing the current directory",
 	Long:  easifem_clean_intro,
 	Args:  cobra.MinimumNArgs(1),
 	ValidArgsFunction: func(
@@ -38,38 +41,69 @@ var cleanCmd = &cobra.Command{
 			if pkg == "extpkgs" {
 				pkgs := pkgGetExtPkgs()
 				for _, p := range pkgs {
-					cleanPkgs(p, pwd)
+					if err := cleanPkgs(p, pwd); err != nil {
+						log.Fatal(err)
+					}
 				}
 			} else {
-				cleanPkgs(pkg, pwd)
+				if err := cleanPkgs(pkg, pwd); err != nil {
+					log.Fatal(err)
+				}
 			}
 		}
 	},
 }
 
 // clean a package
-func cleanPkgs(pkg, pwd string) {
-	// source_dir := install_get_source_dir(pkg)
-	build_dir := easifem_pkgs[pkg].BuildDir
-	install_dir := easifem_pkgs[pkg].InstallDir
-
-	if pwd == build_dir {
-		log.Println("[log] :: clean.go() | build_dir is same as current dir")
-		log.Println("[log] :: clean.go() | cannot clean current directory for pkg: " + pkg)
+func cleanPkgs(name, pwd string) error {
+	pkg, ok := easifem_pkgs[name]
+	if !ok || pkg == nil {
+		return fmt.Errorf("unknown package %q", name)
 	}
-
-	if err := os.RemoveAll(build_dir); err != nil {
-		log.Println("[log] :: clean.go() | could not clean pkg: " + pkg)
+	// Validate both paths before removing either directory.
+	for _, dir := range []string{pkg.BuildDir, pkg.InstallDir} {
+		if err := validateCleanPath(dir, pwd); err != nil {
+			return err
+		}
 	}
-
-	if pwd == install_dir {
-		log.Println("[log] :: clean.go() | install_dir is same as current dir")
-		log.Println("[log] :: clean.go() | cannot clean current directory for pkg: " + pkg)
+	for _, dir := range []string{pkg.BuildDir, pkg.InstallDir} {
+		if err := os.RemoveAll(dir); err != nil {
+			return fmt.Errorf("clean %s: %w", dir, err)
+		}
 	}
+	return nil
+}
 
-	if err := os.RemoveAll(install_dir); err != nil {
-		log.Println("[log] :: clean.go() | could not clean pkg: " + pkg)
+func validateCleanPath(dir, pwd string) error {
+	if strings.TrimSpace(dir) == "" {
+		return fmt.Errorf("refusing to clean an empty path")
 	}
+	target, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+	// Resolve existing symlinks to catch aliases of the current directory.
+	if resolved, err := filepath.EvalSymlinks(target); err == nil {
+		target = resolved
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	current, err := filepath.Abs(pwd)
+	if err != nil {
+		return err
+	}
+	current, err = filepath.EvalSymlinks(current)
+	if err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(target, current)
+	if err != nil {
+		return err
+	}
+	if rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator))) {
+		return fmt.Errorf("refusing to clean %s: contains the current directory", dir)
+	}
+	return nil
 }
 
 func init() {

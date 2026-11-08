@@ -10,7 +10,7 @@ const easifem_banner string = `
     Expandable And Scalable Infrastructure for Finite Element Methods
     (c) Vikas Sharma, Ph.D., vickysharma0812@gmail.com
     https://www.easifem.com
-    version 24.3.0 --HEAD
+    version ` + Version + `
     `
 
 const easifem_intro string = `
@@ -152,11 +152,6 @@ Default is "all"
 const easifem_clean_intro = "clean the build directory,  keep source code."
 
 const (
-	// easifem_version_major  int    = 23
-	// easifem_version_minor  int    = 10
-	// easifem_version_patch  int    = 5
-	// easifem_version_string string = "23.10.05"
-
 	easifem_config_dir       = "easifem"
 	easifem_config_name      = "easifem"
 	easifem_config_type      = "toml"
