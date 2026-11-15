@@ -119,13 +119,22 @@ func runWithFlags(filename, pwd string, changed func(string) bool) error {
 		cargs = append(cargs, "-DCMAKE_Fortran_COMPILER:FILEPATH="+compiler)
 	}
 
+	stamp := envStamp(easifem_current_env_name, easifem_cache.INSTALL_DIRS)
 	if runner.CacheClean {
+		cargs = append(cargs, "--fresh")
+	} else if envStampChanged(runner.BuildDir, stamp) {
+		// The cached find_package results belong to another environment.
+		log.Printf("environment changed to %q: reconfiguring %s from scratch",
+			easifem_current_env_name, runner.BuildDir)
 		cargs = append(cargs, "--fresh")
 	}
 
 	log.Println("running cmd: ", cargs)
 	err = runRunCmd(cargs, true)
 	if err != nil {
+		return fmt.Errorf("run() | error = %w", err)
+	}
+	if err = writeEnvStamp(runner.BuildDir, stamp); err != nil {
 		return fmt.Errorf("run() | error = %w", err)
 	}
 
@@ -265,6 +274,7 @@ func writeCmakeFile(cmake []string, pwd string) error {
 // by value to a goroutine previously discarded build and execution failures.
 func runRunCmd(cargs []string, qmode bool) error {
 	cmd := exec.Command(cargs[0], cargs[1:]...)
+	cmd.Env = runtimeEnv()
 	cmd.Stdin = os.Stdin
 	if qmode {
 		cmd.Stdout = log.Writer()

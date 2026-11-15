@@ -63,6 +63,9 @@ Each program reads `runner.toml` from its own directory (see
 `Debug`, `gfortran`, Ninja and the installed `easifemBase` target. Malformed
 `runner.toml` gives a `COMPILE` result.
 
+- **Environment.** CMake, the builds and the programs run with the selected
+  environment's library directories (`--env`, else `envName`) prepended to
+  `LD_LIBRARY_PATH` (`DYLD_LIBRARY_PATH` on macOS).
 - **Isolated builds.** Every program gets a fresh workspace,
   `<BuildDir>/easifem-test-XXXX/`, containing a generated
   `source/CMakeLists.txt` and `build/`. `BuildDir` defaults to

@@ -45,3 +45,13 @@ easifem run Initiate_test_1.F90 --rebuild
 - The program's output is forwarded directly to the terminal.
 - `--cache-clean` and `--rebuild` affect only this program's build directory.
   They do not rebuild the installed EASIFEM libraries.
+- The selected environment (`--env`, else `envName`) decides which installed
+  libraries are used. CMake, the build and the program run with that
+  environment's library directories prepended to `LD_LIBRARY_PATH`
+  (`DYLD_LIBRARY_PATH` on macOS), so the libraries exported by the shell from
+  `easifemvar.fish` cannot override them and no shell reload is needed.
+- `run` records the environment and its install prefixes in
+  `<BuildDir>/.easifem-env`. When they differ from the previous configuration
+  (or the file is missing from an already configured build directory), CMake
+  is configured with `--fresh`, because its cache would otherwise keep the
+  libraries found for the previous environment.
