@@ -111,12 +111,17 @@ On every start-up (every command except `--help` and `--version`), the CLI:
   prefixes (plus `cmakePrefixPath`) and library directories of all active
   packages;
 - writes `easifemvar.fish` next to it, with one
-  `set -gx LD_LIBRARY_PATH ...` line per library directory.
+  `set -gx LD_LIBRARY_PATH ...` line per library directory. This file is
+  written only when `--env` is not given, so it always describes the
+  configured `envName`; a one-off `--env` leaves it unchanged. To change the
+  environment your shell exports, edit `envName` and run any command.
 
 The cache lists configured prefixes; it does not prove that a library has been
 installed there. `easifemvar.fish` is not loaded automatically: run
 `source ~/.config/easifem/easifemvar.fish` (adjusting the path) in Fish, or set
 `LD_LIBRARY_PATH` yourself in other shells. No POSIX shell file is written.
+`easifem run` and `easifem test` do not depend on it: they set the library
+path of the selected environment for the programs they launch.
 
 ## `runner.toml`
 

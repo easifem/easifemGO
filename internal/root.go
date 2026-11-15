@@ -54,7 +54,8 @@ func init() {
 		"Skip downloading package sources during install (still builds and installs)")
 
 	rootCmd.PersistentFlags().StringVar(&easifem_current_env_name,
-		"env", easifem_default_env_name, "Current environment name")
+		"env", easifem_default_env_name,
+		"Environment for this invocation (default: envName from easifem.toml); does not rewrite easifemvar.fish")
 	if err := viper.BindPFlag("envName",
 		rootCmd.PersistentFlags().Lookup("env")); err != nil {
 		log.Fatalln("[err] :: root.go | viper.BindPFlag() ➡ ", err)
@@ -147,5 +148,12 @@ func initConfig() {
 		log.Fatalln("[err] :: root.go | initConfig() ➡ ", err)
 	}
 
-	writeShellVarFle()
+	// easifemvar.fish is sourced by the user's shell, so it describes the
+	// configured default environment (envName). A one-off `--env` must not
+	// rewrite it, or every later shell would silently use that environment.
+	if !rootCmd.PersistentFlags().Changed("env") {
+		writeShellVarFle()
+	} else if verbose && !quiet {
+		log.Printf("[log] :: root.go | --env %s given: easifemvar.fish left unchanged", easifem_current_env_name)
+	}
 }

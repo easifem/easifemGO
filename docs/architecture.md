@@ -15,6 +15,7 @@
 | `internal/spinner.go`                   | Bubble Tea spinner component.                                                           |
 | `internal/run.go`                       | `run` command, `CMakeLists.txt` generation and subprocess execution.                    |
 | `internal/test.go`                      | `test` command: flags, signal handling, reporting and exit policy.                      |
+| `internal/runtime_env.go`               | Library path of the selected environment for `run`/`test` children; build-dir env stamp. |
 | `internal/test_executor.go`             | Adapter implementing `testrunner.Executor` with isolated CMake builds and `runner.toml`.|
 | `internal/testrunner/`                  | Standard-library-only discovery, execution policy, result parsing and reports.          |
 | `internal/lint.go`                      | `lint` command.                                                                         |
