@@ -3,7 +3,7 @@ package internal
 import "github.com/spf13/cobra"
 
 // Version is the release version of the easifem CLI.
-const Version = "2026.11.08"
+const Version = "2026.11.15"
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
