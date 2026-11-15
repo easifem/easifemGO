@@ -141,7 +141,7 @@ func testCommand(ctx context.Context, dir string, out io.Writer, args ...string)
 	if _, err := fmt.Fprintf(out, "command: %q\nworking directory: %s\n", args, dir); err != nil {
 		return err
 	}
-	return testrunner.RunCommand(ctx, dir, out, nil, args...)
+	return testrunner.RunCommandEnv(ctx, dir, runtimeEnv(), out, nil, args...)
 }
 
 func expandTestPath(base, path string) (string, error) {

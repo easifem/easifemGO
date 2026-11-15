@@ -127,6 +127,10 @@ easifem lint filename [projectname]
 
 projectname can be "base", "classes", or "all"
 Default is "all"
+
+The libraries of the selected environment (--env, else envName) are used
+for building and running; the shell's LD_LIBRARY_PATH cannot override them,
+and the build directory is reconfigured when the environment changes.
 `
 
 const easifem_run_intro = `

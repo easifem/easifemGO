@@ -4,8 +4,8 @@ Read [configuration](configuration.md) before first use.
 
 Every command except `easifem --version` and `easifem --help` first runs
 normal start-up. Start-up loads the main configuration and package plugins,
-creates the lint directory, and rewrites `cache.toml` and `easifemvar.fish` next
-to the main configuration. So even a command that only lists files, such as
+creates the lint directory, and rewrites `cache.toml` and (unless `--env` is
+given) `easifemvar.fish` next to the main configuration. So even a command that only lists files, such as
 `easifem test --list`, writes to the configuration directory.
 
 ## Commands
@@ -26,7 +26,7 @@ to the main configuration. So even a command that only lists files, such as
 | Flag             | Effect                                                                                                                                  |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `--config`, `-c` | Use this main configuration file instead of searching for `easifem.toml`.                                                               |
-| `--env`          | Select the environment section. Without the flag, `envName` from the configuration file is used, falling back to `env`.                |
+| `--env`          | Select the environment section for this invocation. Without the flag, `envName` from the configuration file is used, falling back to `env`. |
 | `--quiet`, `-q`  | Suppress the CLI logger and library progress. Failed stages still show recent diagnostics and a log path. Test summaries still print.  |
 | `--verbose`      | Show configuration details, each library stage's command, working directory, full output and log path. Disables animation.             |
 | `--no-download`  | Skip the download stage of `easifem install`. Building and installing still happen.                                                    |
