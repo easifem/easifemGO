@@ -47,9 +47,11 @@ lintDir = "$HOME/temp/easifem/lint"
 - The active environment is `--env` if given, else `envName`, else `env`.
 - The directory keys are read from that environment's table. `$HOME` and other
   environment variables are expanded; a literal `~` is not.
-- An environment table may also set `buildSystem`, `env` (a list of
-  `KEY=value` strings), `ldLibraryPath` and `extpkgs`. These serve as defaults
-  for packages that do not set them.
+- An environment table may also set `buildSystem`, `buildType`,
+  `buildSharedLibs`, `buildStaticLibs`, `env` (a list of `KEY=value`
+  strings), `ldLibraryPath` and `extpkgs`. These serve as defaults for
+  packages that do not set them, so for example `[dev]` can use
+  `buildType = "Debug"` and `[release]` `buildType = "Release"`.
 - A `plugins` directory must exist next to the main configuration file, and
   the directory must be writable (see [generated files](#generated-files)).
 
@@ -85,8 +87,8 @@ Define `base` and any external libraries the same way.
 | `sourceDir`, `buildDir`, `installDir` | If omitted: `<name>.<key>` in the main configuration, else `<environment dir>/<name>`.                           |
 | `git` / `url`                         | Download source for `easifem install` (without `--no-download`).                                                 |
 | `buildSystem`                         | `cmake` (default) or `make`; other values make `install` fail. See [install](install.md#stages).                |
-| `buildType`                           | Default `Release`. Used by `install`; `easifem dev` always builds `Debug`.                                        |
-| `buildSharedLibs`, `buildStaticLibs`  | Passed to CMake as `BUILD_SHARED_LIBS`/`BUILD_STATIC_LIBS`.                                                       |
+| `buildType`                           | If omitted: `<name>.buildType`, else `<environment>.buildType`, else `Release`. Used by `install`; `easifem dev` always builds `Debug`. |
+| `buildSharedLibs`, `buildStaticLibs`  | Passed to CMake as `BUILD_SHARED_LIBS`/`BUILD_STATIC_LIBS`. If omitted: `<name>.<key>`, else `<environment>.<key>`, else `false`. An explicit `false` in the plugin is kept. |
 | `buildOptions`                        | Extra arguments for CMake configure (or `./configure` for `make`).                                               |
 | `targetName`                          | Default: `name`.                                                                                                 |
 | `cmakePrefixPath`                     | Extra CMake package-search prefixes, added to the cache.                                                         |
