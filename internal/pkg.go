@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"syscall"
@@ -33,14 +34,10 @@ func pkgMakeWithOutput(pkg *Pkg, pwd string, output *libraryOutput) error {
 		return err
 	}
 
-	cargs := []string{
-		filepath.Join(pkg.SourceDir, "configure"),
-		"--prefix=" + pkg.InstallDir,
-	}
+	cargs := configureArgs(runtime.GOOS, pkg.SourceDir, pkg.InstallDir, pkg.BuildOptions)
 
 	var err error
 
-	cargs = append(cargs, pkg.BuildOptions...)
 	err = output.run(cargs, "Configure", pkg.BuildDir)
 	if err != nil {
 		return err
@@ -59,6 +56,26 @@ func pkgMakeWithOutput(pkg *Pkg, pwd string, output *libraryOutput) error {
 	}
 
 	return nil
+}
+
+// configureArgs returns the command for an autotools configure step.
+//
+// On Windows a native program cannot start the extension-less configure
+// shell script (exec.LookPath only accepts PATHEXT extensions), so the script
+// is run through sh, as provided by MSYS2. Autotools scripts also mishandle
+// backslashes, so the script and prefix paths are given with forward slashes.
+func configureArgs(goos, sourceDir, installDir string, buildOptions []string) []string {
+	script := filepath.Join(sourceDir, "configure")
+	prefix := installDir
+	var cargs []string
+	if goos == "windows" {
+		cargs = []string{"sh", filepath.ToSlash(script)}
+		prefix = filepath.ToSlash(prefix)
+	} else {
+		cargs = []string{script}
+	}
+	cargs = append(cargs, "--prefix="+prefix)
+	return append(cargs, buildOptions...)
 }
 
 //----------------------------------------------------------------------------

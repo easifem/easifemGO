@@ -26,7 +26,12 @@ easifem --quiet install extpkgs
      shared/static settings, installed prefixes of registered packages and
      `buildOptions`; then `cmake --build` and `cmake --install`.
    - `make`: `<sourceDir>/configure --prefix=<installDir> <buildOptions>`,
-     `make` and `make install`, all run in `buildDir`.
+     `make` and `make install`, all run in `buildDir`. On Windows the
+     extension-less `configure` script cannot be started directly, so it runs
+     as `sh <sourceDir>/configure --prefix=<installDir> <buildOptions>` with
+     forward-slash paths. This needs `sh` and `make` on `PATH`, for example
+     by running `easifem` from an MSYS2 shell with the `make` package
+     installed (`pacman -S make`).
 
    Any other value (including `mason`) is rejected with an error before
    anything is downloaded or built.
