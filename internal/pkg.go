@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"path"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -34,7 +34,7 @@ func pkgMakeWithOutput(pkg *Pkg, pwd string, output *libraryOutput) error {
 	}
 
 	cargs := []string{
-		path.Join(pkg.SourceDir, "configure"),
+		filepath.Join(pkg.SourceDir, "configure"),
 		"--prefix=" + pkg.InstallDir,
 	}
 
@@ -175,7 +175,7 @@ func PkgInstall(pkg *Pkg, pwd string) (err error) {
 func PkgMakeFromToml(pkg string) (*Pkg, error) {
 	var p *Pkg
 	var err error
-	tomlFile := path.Join(configPath, easifem_pkg_config_dir, pkg+".toml")
+	tomlFile := filepath.Join(configPath, easifem_pkg_config_dir, pkg+".toml")
 
 	if verbose && !quiet {
 		log.Printf("[log] :: pkg.go | PkgMakeFromToml() pkg=%s, file=%s",
@@ -399,7 +399,7 @@ func pkgMakeDir(dir string) {
 // the cursor through its deferred cleanup.
 func makePackageDirs(dir string) error {
 	for _, opt := range []string{"lib", "include", "bin", "share"} {
-		astr := path.Join(dir, opt)
+		astr := filepath.Join(dir, opt)
 		if err := os.MkdirAll(astr, 0777); err != nil {
 			return fmt.Errorf("create directory %s: %w", astr, err)
 		}
@@ -483,9 +483,9 @@ func pkgGetSourceDirFromViper(pkg string) string {
 		return viper.GetString(key)
 	}
 	if key := easifem_current_env_name + ".sourceDir"; viper.IsSet(key) {
-		return path.Join(viper.GetString(key), pkg)
+		return filepath.Join(viper.GetString(key), pkg)
 	}
-	return path.Join(sourceDir, "easifem", pkg)
+	return filepath.Join(sourceDir, "easifem", pkg)
 }
 
 //----------------------------------------------------------------------------
@@ -501,9 +501,9 @@ func pkgGetBuildDirFromViper(pkg string) string {
 		return viper.GetString(key)
 	}
 	if key := easifem_current_env_name + ".buildDir"; viper.IsSet(key) {
-		return path.Join(viper.GetString(key), pkg)
+		return filepath.Join(viper.GetString(key), pkg)
 	}
-	return path.Join(buildDir, "easifem", pkg)
+	return filepath.Join(buildDir, "easifem", pkg)
 }
 
 //----------------------------------------------------------------------------
@@ -519,9 +519,9 @@ func pkgGetInstallDirFromViper(pkg string) string {
 		return viper.GetString(key)
 	}
 	if key := easifem_current_env_name + ".installDir"; viper.IsSet(key) {
-		return path.Join(viper.GetString(key), pkg)
+		return filepath.Join(viper.GetString(key), pkg)
 	}
-	return path.Join(installDir, "easifem", pkg)
+	return filepath.Join(installDir, "easifem", pkg)
 }
 
 //----------------------------------------------------------------------------
@@ -624,10 +624,10 @@ func pkgGetExtPkgs() []string {
 // If config directory is not available, then it returns the default external packages
 func pkgGetAllNames() []string {
 	if _, err := os.Stat(configPath); !os.IsNotExist(err) {
-		mypath := path.Join(configPath, easifem_pkg_config_dir)
+		mypath := filepath.Join(configPath, easifem_pkg_config_dir)
 		entries, err2 := os.ReadDir(mypath)
 		if err2 != nil {
-			log.Fatalln("[err] :: pkg.go | pkgGetExtPkgs() ➡️ ", err2)
+			log.Fatalf("[err] :: pkg.go | pkgGetAllNames() ➡️ read plugin directory %s: %v", mypath, err2)
 		}
 
 		ans := make([]string, len(entries))
@@ -674,7 +674,7 @@ func makeAllPkgsFromToml() error {
 // Read the cache
 func readCache() error {
 	var err error
-	cacheFile := path.Join(configPath, easifem_cache_file)
+	cacheFile := filepath.Join(configPath, easifem_cache_file)
 
 	if verbose && !quiet {
 		log.Printf("[log] :: pkg.go | readCache() | cacheFile=%s➡️ ", cacheFile)
@@ -700,7 +700,7 @@ func buildCache() {
 			}
 
 			// easifem_cache.INSTALL_DIRS = append(easifem_cache.INSTALL_DIRS, pkg.CmakePrefixPath...)
-			easifem_cache.LD_LIBRARY_PATH = append(easifem_cache.LD_LIBRARY_PATH, path.Join(pkg.InstallDir, "lib"))
+			easifem_cache.LD_LIBRARY_PATH = append(easifem_cache.LD_LIBRARY_PATH, filepath.Join(pkg.InstallDir, "lib"))
 			easifem_cache.LD_LIBRARY_PATH = append(easifem_cache.LD_LIBRARY_PATH, pkg.LdLibraryPath...)
 		}
 	}
@@ -708,7 +708,7 @@ func buildCache() {
 
 // Read the cache
 func writeCache() error {
-	cacheFile := path.Join(configPath, easifem_cache_file)
+	cacheFile := filepath.Join(configPath, easifem_cache_file)
 
 	f, err := os.Create(cacheFile)
 	if err != nil {
@@ -740,7 +740,7 @@ func writeCache() error {
 
 func writeShellVarFle() {
 	// open output file
-	fo, err := os.Create(path.Join(configPath, easifem_shell_var_file+".fish"))
+	fo, err := os.Create(filepath.Join(configPath, easifem_shell_var_file+".fish"))
 	if err != nil {
 		log.Fatalln("[err] :: pkg.go | writeShellVarFle() | err while opening file => ", err)
 	}

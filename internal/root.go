@@ -9,7 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -106,9 +106,9 @@ func initConfig() {
 		}
 
 		viper.AddConfigPath(home)
-		viper.AddConfigPath(path.Join(home, easifem_config_dir))
-		viper.AddConfigPath(path.Join(home, ".config"))
-		viper.AddConfigPath(path.Join(home, ".config", easifem_config_dir))
+		viper.AddConfigPath(filepath.Join(home, easifem_config_dir))
+		viper.AddConfigPath(filepath.Join(home, ".config"))
+		viper.AddConfigPath(filepath.Join(home, ".config", easifem_config_dir))
 		viper.AddConfigPath(".")
 
 	}
@@ -122,7 +122,7 @@ func initConfig() {
 		easifem_current_env_name = viper.GetString("envName")
 		// quiet = viper.GetBool(easifem_current_env_name + ".quiet")
 		configFile = viper.ConfigFileUsed()
-		configPath = path.Dir(configFile)
+		configPath = filepath.Dir(configFile)
 	} else {
 		log.Fatalln("[err] :: root.go | viper.ReadInConfig() ➡ ", err)
 	}

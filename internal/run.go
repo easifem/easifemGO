@@ -9,7 +9,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 	"github.com/spf13/cobra"
@@ -70,7 +70,7 @@ func runWithFlags(filename, pwd string, changed func(string) bool) error {
 		ReBuild:             reBuild,
 	}
 
-	tomlFile := path.Join(pwd, "runner.toml")
+	tomlFile := filepath.Join(pwd, "runner.toml")
 
 	if _, err = os.Stat(tomlFile); !os.IsNotExist(err) {
 		if _, err = toml.DecodeFile(tomlFile, &runner); err != nil {
@@ -150,7 +150,7 @@ func runWithFlags(filename, pwd string, changed func(string) bool) error {
 		return fmt.Errorf("run() | error = %w", err)
 	}
 
-	cargs = []string{path.Join(runner.BuildDir, runner.TargetName)}
+	cargs = []string{filepath.Join(runner.BuildDir, runner.TargetName)}
 	if runner.IsExecute {
 		log.Println("executable file path: ", cargs)
 		return err
@@ -250,7 +250,7 @@ func makeCmakeFile(runner Runner) []string {
 
 // Read the cache
 func writeCmakeFile(cmake []string, pwd string) error {
-	afile := path.Join(pwd, "CMakeLists.txt")
+	afile := filepath.Join(pwd, "CMakeLists.txt")
 
 	f, err := os.Create(afile)
 	if err != nil {

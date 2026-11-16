@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/BurntSushi/toml"
@@ -92,7 +91,7 @@ func lint(filename, projectname, pwd string) error {
 		LintDir:      lintDir,
 	}
 
-	tomlFile := path.Join(pwd, "linter.toml")
+	tomlFile := filepath.Join(pwd, "linter.toml")
 	if _, err := os.Stat(tomlFile); err == nil {
 		if _, err := toml.DecodeFile(tomlFile, &linter); err != nil {
 			return fmt.Errorf("read %s: %w", tomlFile, err)
@@ -133,7 +132,7 @@ func lintArgs(linter Linter, filename, pwd string, installDirs []string) ([]stri
 		cargs = append(cargs, "-I", os.ExpandEnv(incpath))
 	}
 	for _, installDir := range installDirs {
-		cargs = append(cargs, "-I", path.Join(installDir, "include"))
+		cargs = append(cargs, "-I", filepath.Join(installDir, "include"))
 	}
 	cargs = append(cargs, lintDefaultFlags...)
 	for _, flag := range linter.Flags {
@@ -142,9 +141,9 @@ func lintArgs(linter Linter, filename, pwd string, installDirs []string) ([]stri
 
 	lintDir := os.ExpandEnv(linter.LintDir)
 	cargs = append(cargs,
-		"-J", path.Join(lintDir, "include"),
+		"-J", filepath.Join(lintDir, "include"),
 		"-c", filename,
-		"-o", path.Join(lintDir, "lib", filepath.Base(filename)+".o"),
+		"-o", filepath.Join(lintDir, "lib", filepath.Base(filename)+".o"),
 	)
 	return cargs, nil
 }
