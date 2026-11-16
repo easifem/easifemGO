@@ -183,12 +183,12 @@ func PkgMakeFromToml(pkg string) (*Pkg, error) {
 	}
 
 	p = &Pkg{IsActive: true, IsExtPkg: false}
-	_, err = toml.DecodeFile(tomlFile, p)
+	md, err := toml.DecodeFile(tomlFile, p)
 	if err != nil {
 		return p, err
 	}
 
-	if err = PkgCheckAndFix(p); err != nil {
+	if err = pkgCheckAndFix(p, pluginDefinedKeys(md)); err != nil {
 		return p, err
 	}
 
@@ -222,8 +222,41 @@ func PkgLogPrint(p *Pkg) {
 //                                                          PkgCheckAndFix
 //----------------------------------------------------------------------------
 
-// Check and fix the pkg
+// Check and fix the pkg. A boolean set to true counts as defined; false is
+// indistinguishable from "not set" here, so it falls back to the
+// configuration. PkgMakeFromToml knows which keys the plugin defined.
 func PkgCheckAndFix(pkg *Pkg) error {
+	return pkgCheckAndFix(pkg, map[string]bool{
+		"buildsharedlibs": pkg.BuildSharedLibs,
+		"buildstaticlibs": pkg.BuildStaticLibs,
+	})
+}
+
+// pluginDefinedKeys returns the top-level keys a plugin file sets, lowercased
+// because the TOML decoder matches struct fields case-insensitively.
+func pluginDefinedKeys(md toml.MetaData) map[string]bool {
+	defined := map[string]bool{}
+	for _, key := range md.Keys() {
+		if len(key) == 1 {
+			defined[strings.ToLower(key[0])] = true
+		}
+	}
+	return defined
+}
+
+// pkgConfigKey returns the first of "<pkg>.<key>" and "<env>.<key>" that is set
+// in the main configuration, matching the fallback of buildSystem, sourceDir
+// and the other package keys.
+func pkgConfigKey(name, key string) (string, bool) {
+	for _, table := range []string{name, easifem_current_env_name} {
+		if full := table + "." + key; viper.IsSet(full) {
+			return full, true
+		}
+	}
+	return "", false
+}
+
+func pkgCheckAndFix(pkg *Pkg, defined map[string]bool) error {
 	var err error
 
 	if !pkg.IsActive {
@@ -276,6 +309,21 @@ func PkgCheckAndFix(pkg *Pkg) error {
 
 	if pkg.BuildType == "" {
 		pkg.BuildType = easifem_build_type
+		if key, ok := pkgConfigKey(pkg.Name, "buildType"); ok {
+			pkg.BuildType = viper.GetString(key)
+		}
+	}
+
+	if !defined["buildsharedlibs"] {
+		if key, ok := pkgConfigKey(pkg.Name, "buildSharedLibs"); ok {
+			pkg.BuildSharedLibs = viper.GetBool(key)
+		}
+	}
+
+	if !defined["buildstaticlibs"] {
+		if key, ok := pkgConfigKey(pkg.Name, "buildStaticLibs"); ok {
+			pkg.BuildStaticLibs = viper.GetBool(key)
+		}
 	}
 
 	if pkg.BuildSharedLibs && pkg.BuildStaticLibs {
